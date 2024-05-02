@@ -1,7 +1,8 @@
 # Windows 11 initialisation Tweaks
-This script is an "initialisation" for fresh Windows installs (after OOBE). **It needs to be run as Administrator**.
+This script is a user "initialisation" for fresh Windows installs (after OOBE). It's here to make my life easier with VMs and such.
 
 ## Usage
+Run as Administrator
 ```
 powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ```
@@ -9,7 +10,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ## Script actions
 
 1. **Apply the Windows(dark) theme.**
-
+    
     Windows is a little particular with the wallpaper; sometimes it needs a reboot or multiple script runs.
 
 1. **Taskbar:**

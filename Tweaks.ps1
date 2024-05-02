@@ -144,10 +144,10 @@ Taskbar: Align to left, hide Copilot button, Widgets button and search
 Write-Host 'Tweaking Taskbar'
 
 $regDictTaskbar = @{
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode' = 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ShowCopilotButton' = 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarAl' = 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDa' = 0
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode' = [int] 0
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ShowCopilotButton' = [int] 0
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarAl' = [int] 0
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDa' = [int] 0
 }
 
 
@@ -176,9 +176,9 @@ Show hidden files and known folder extensions
 Write-Host 'Tweaking File Explorer...'
 
 $regDictFileExplorer = @{
-'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Hidden' = 1
-'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\HideFileExt' = 0
-'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\LaunchTo' = 1
+'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Hidden' = [int] 1
+'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\HideFileExt' = [int] 0
+'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\LaunchTo' = [int] 1
 }
 
 foreach ($key in $regDictFileExplorer.GetEnumerator()) { 
@@ -216,8 +216,8 @@ Enable RDP
 Write-Host 'Tweaking RDP...'
 
 $regDictRDPEnable = @{
-    'HKLM:\SYSTEM\ControlSet001\Control\Terminal Server\fDenyTSConnections' = 0
-    'HKLM:\SYSTEM\ControlSet001\Control\Terminal Server\updateRDStatus' = 1
+    'HKLM:\SYSTEM\ControlSet001\Control\Terminal Server\fDenyTSConnections' = [int] 0
+    'HKLM:\SYSTEM\ControlSet001\Control\Terminal Server\updateRDStatus' = [int] 1
 }
 
 

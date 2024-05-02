@@ -15,11 +15,6 @@ Function Set-RegValueData {
 
         $strRegPath = Split-Path $regPath
         $regValue = Split-Path $regPath -Leaf
-        
-
-        # If reg path exists but itemproperty doesn't, create item
-        # If reg path does not exist, only create if switched
-
 
         # If the path to the key exists
         if (Test-Path $strRegPath) {

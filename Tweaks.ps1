@@ -2,13 +2,7 @@ Function Get-RegBackup {
     param (
         [Parameter(Mandatory=$true)]
         [string]
-        $backupKeyName,
-        [Parameter(Mandatory=$true)]
-        [string]
-        $backupFilename,
-        [Parameter(Mandatory=$true)]
-        [string]
-        $backupPath
+        $backupKeyName, $backupFilename, $backupPath    
     )
 
     $backupFileNameArray = $backupFileName -split '-'
@@ -31,15 +25,7 @@ Function Set-RegValueData {
     param (
         [Parameter(Mandatory=$true)]
         [string]
-        $regKeyName,
-
-        [Parameter(Mandatory=$true)]
-        [string]
-        $regValueName,
-
-        [Parameter(Mandatory=$true)]
-        [string]
-        $regType,
+        $regKeyName, $regValueName, $regType,
 
         [Parameter(Mandatory=$true)]
         [object]

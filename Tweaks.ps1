@@ -110,16 +110,15 @@ Set the dark theme
 
 Write-Host 'Applying dark theme...'
 
-$regPathCurrentTheme = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\CurrentTheme'
-$currentTheme = (Get-ItemProperty (Split-Path $regPathCurrentTheme) `
-                                  (Split-Path $regPathCurrentTheme -Leaf) -ErrorAction Stop).CurrentTheme
+$currentTheme = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes' `
+                                  'CurrentTheme' -ErrorAction Stop).CurrentTheme
 $newTheme = 'C:\Windows\resources\Themes\dark.theme'
 $newThemeWallpaper = 'C:\Windows\web\wallpaper\Windows\img19.jpg'
 
 if($newTheme -ne $currentTheme) {
 
     $regDictTheme = @{
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\CurrentTheme' = [string] 'C:\Windows\resources\Themes\dark.theme'
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\CurrentTheme' = [string] $newTheme
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\HighContrast\Pre-High Contrast Scheme' = [string] $newTheme
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme' = [int] 0
         'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\SystemUsesLightTheme' = [int] 0

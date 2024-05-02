@@ -25,11 +25,7 @@ Function Set-RegValueData {
     param (
         [Parameter(Mandatory=$true)]
         [string]
-        $regKeyName, $regValueName, $regType,
-
-        [Parameter(Mandatory=$true)]
-        [object]
-        $regValueData,
+        $regKeyName, $regValueName, $regType, $regValueData,
 
         [Parameter(Mandatory=$false)]
         [bool]

@@ -2,7 +2,9 @@
 This script is an "initialisation" for fresh Windows installs (after OOBE). **It needs to be run as Administrator**.
 
 ## Usage
-`powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"`
+```
+powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
+```
 
 ### Script actions
 

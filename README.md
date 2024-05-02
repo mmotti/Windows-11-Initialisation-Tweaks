@@ -17,7 +17,7 @@ This script is an "initialisation" for fresh Windows installs (after OOBE). **It
 
 1. **File Explorer:**
     * Show hidden files.
-    * Don't hide extensions for known file types.
+    * Show extensions for known file types.
     * Open "This PC" by default.
   
 1. **Set the power plan to High Performance.**

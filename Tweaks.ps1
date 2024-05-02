@@ -135,13 +135,44 @@ if($newTheme -ne $currentTheme) {
     }
 }
 
+<#
+
+Show 'This PC' and custom icon settings
+Small icons, sort by item type.
+
+#>
+
+Write-Host 'Setting icon layout...'
+
+$iconLayoutsByteArray = 
+@(
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,0,1,0,1,0,2,0,0,0,0,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,50,0
+    48,0,68,0,48,0,52,0,70,0,69,0,48,0,45,0,51,0,65,0,69,0,65,0,45,0,49,0,48,0,54,0,57,0,45,0,65,0,50,0,68
+    0,56,0,45,0,48,0,56,0,48,0,48,0,50,0,66,0,51,0,48,0,51,0,48,0,57,0,68,0,125,0,62,0,32,0,32,0,0,0,44,0
+    0,0,0,0,0,0,58,0,58,0,123,0,54,0,52,0,53,0,70,0,70,0,48,0,52,0,48,0,45,0,53,0,48,0,56,0,49,0,45,0,49
+    0,48,0,49,0,66,0,45,0,57,0,70,0,48,0,56,0,45,0,48,0,48,0,65,0,65,0,48,0,48,0,50,0,70,0,57,0,53,0,52,0
+    69,0,125,0,62,0,32,0,32,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0
+    0,0,0,0,34,0,0,0,16,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,63,1,0
+)
+
+ $regDictIcons = @{
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu\{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = [int] 0
+    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel\{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = [int] 0
+    'HKCU:\Software\Microsoft\Windows\Shell\Bags\1\Desktop\IconLayouts' = [array] $iconLayoutsByteArray
+ }
+
+ foreach ($key in $regDictIcons.GetEnumerator()) {
+    Set-RegValueData $key.Name $key.Value
+ }
+
+
 <# 
 
 Taskbar: Align to left, hide Copilot button, Widgets button and search
 
 #>
 
-Write-Host 'Tweaking Taskbar'
+Write-Host 'Tweaking Taskbar...'
 
 $regDictTaskbar = @{
     'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode' = [int] 0
@@ -244,7 +275,7 @@ Remove public desktop shortcuts
 
 #>
 
-Write-Host 'Removing specified Public Desktop shortcuts'
+Write-Host 'Removing specified Public Desktop shortcuts...'
 
 $publicDesktopShortcuts = @(
     'C:\Users\Public\Desktop\Microsoft Edge.lnk'
@@ -283,35 +314,6 @@ if (Test-Path "$env:systemroot\System32\OneDriveSetup.exe") {
 if(Test-Path "$env:systemroot\SysWOW64\OneDriveSetup.exe") {
     & "$env:systemroot\SysWOW64\OneDriveSetup.exe" /uninstall /allusers
 }
-
-
-<#
-
-Show 'This PC' and custom icon settings
-Small icons, sort by item type.
-
-#>
-
-$iconLayoutsByteArray = 
-@(
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,0,1,0,1,0,2,0,0,0,0,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,50,0
-    48,0,68,0,48,0,52,0,70,0,69,0,48,0,45,0,51,0,65,0,69,0,65,0,45,0,49,0,48,0,54,0,57,0,45,0,65,0,50,0,68
-    0,56,0,45,0,48,0,56,0,48,0,48,0,50,0,66,0,51,0,48,0,51,0,48,0,57,0,68,0,125,0,62,0,32,0,32,0,0,0,44,0
-    0,0,0,0,0,0,58,0,58,0,123,0,54,0,52,0,53,0,70,0,70,0,48,0,52,0,48,0,45,0,53,0,48,0,56,0,49,0,45,0,49
-    0,48,0,49,0,66,0,45,0,57,0,70,0,48,0,56,0,45,0,48,0,48,0,65,0,65,0,48,0,48,0,50,0,70,0,57,0,53,0,52,0
-    69,0,125,0,62,0,32,0,32,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0
-    0,0,0,0,34,0,0,0,16,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,63,1,0
-)
-
- $regDictIcons = @{
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu\{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel\{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\Shell\Bags\1\Desktop\IconLayouts' = [array] $iconLayoutsByteArray
- }
-
- foreach ($key in $regDictIcons.GetEnumerator()) {
-    Set-RegValueData $key.Name $key.Value
- }
 
 <#
 

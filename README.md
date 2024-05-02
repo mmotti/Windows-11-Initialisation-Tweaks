@@ -42,7 +42,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Show "This PC" on the desktop.
     * Set the icon layout that I like (small icons & sort by item type).
 
-## Windows Sandbox usage
+## Usage with Windows Sandbox
 You can use this file to initialise the Windows Sandbox too!
 
 #### Sample  configuration

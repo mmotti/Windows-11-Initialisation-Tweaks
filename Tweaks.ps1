@@ -1,4 +1,4 @@
-Function Get-RegBackup {
+Function Export-RegBackup {
     param (
         [Parameter(Mandatory=$true)]
         [string]
@@ -116,7 +116,7 @@ Function Set-RegValueData {
                 if ($valueDiff) {
 
                     if ($regBackup -and $regKeyName -notin $backedUpKeys) {
-                        Get-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
+                        Export-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
                         $backedUpKeys += $regKeyName
                     }
 
@@ -138,7 +138,7 @@ Function Set-RegValueData {
                     # Check whether we need to backup the registry key
                     # and do so if necessary
                     if ($regBackup -and $regKeyName -notin $backedUpKeys) {
-                        Get-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
+                        Export-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
                         $backedUpKeys += $regKeyName
                     }
 

@@ -6,7 +6,7 @@ This script is an "initialisation" for fresh Windows installs (after OOBE). **It
 powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ```
 
-### Script actions
+## Script actions
 
 1. **Apply the Windows(dark) theme.**
 
@@ -42,7 +42,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Show "This PC" on the desktop.
     * Set the icon layout that I like (small icons & sort by item type).
 
-### Windows Sandbox usage
+## Windows Sandbox usage
 You can use this file to initialise the Windows Sandbox too!
 
 #### Sample  configuration

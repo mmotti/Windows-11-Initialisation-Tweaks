@@ -21,6 +21,10 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
   
 1. **Disables start menu internet search suggestions.**
 
+1. **Desktop icons:**
+    * Show "This PC" on the desktop.
+    * Set the icon layout that I like (small icons & sort by item type).
+
 1. **File Explorer:**
     * Show hidden files.
     * Show extensions for known file types.
@@ -38,10 +42,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Run the uninstallers in the %localappdata% and Windows folders.
 
       Note: Windows will likely install these again.
-   
-1. **Desktop icons:**
-    * Show "This PC" on the desktop.
-    * Set the icon layout that I like (small icons & sort by item type).
 
 ## Usage with Windows Sandbox
 You can use this file to initialise the Windows Sandbox too!
@@ -62,4 +62,4 @@ You can use this file to initialise the Windows Sandbox too!
   </LogonCommand>
 </Configuration>
 ```
-Save this with your relevant `<HostFolder>` and `SandboxFolder` preferences to a `.wsb` file (e.g. `Sandbox.wsb`) and then double-click the wsb file to launch the Sandbox.
+Save this with your relevant `<HostFolder>` and `<SandboxFolder>` preferences to a `.wsb` file (e.g. `Sandbox.wsb`) and then double-click the wsb file to launch the Sandbox.

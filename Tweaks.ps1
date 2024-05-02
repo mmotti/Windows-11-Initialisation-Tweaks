@@ -228,12 +228,18 @@ $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | 
 foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
     Write-Host ("Applying registry tweaks for $category")
-
-    $tweakCount = ($registryJSON.$category | Where-Object {$_.Active -eq 'true'}).Count
+    $tweaks = $registryJSON.$category | Where-Object {$_.Active -eq 'true'}
+    $tweakCount = $tweaks.Count
     $successfulTweaks = 0
 
-    foreach ($tweak in $registryJSON.$category) {
+    foreach ($tweak in $tweaks) {
 
+        $requiredProperties = @('Active', 'Action', 'RegPath', 'Name', 'Type', 'Value')
+
+        if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
+            continue
+        }
+            
         if ($tweak.Active.ToUpper() -eq 'TRUE') {
 
             if ($tweak.Action.ToUpper() -eq 'ADD') {

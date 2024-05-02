@@ -2,9 +2,10 @@
 This script is an "initialisation" for fresh Windows installs (after OOBE). **It needs to be run as Administrator**.
 
 ### What does it do?
-**Applies the Windows(dark) theme.**
 
-Windows is a little particular with the wallpaper; sometimes it needs a reboot or multiple script runs.
+1. **Applies the Windows(dark) theme.**
+
+    Windows is a little particular with the wallpaper; sometimes it needs a reboot or multiple script runs.
 
 1. **Taskbar**:
     * Aligns to the left
@@ -12,27 +13,27 @@ Windows is a little particular with the wallpaper; sometimes it needs a reboot o
     * Hides Widgets button
     * Hides Search button
   
-2. **Disables start menu internet search suggestions**
+1. **Disables start menu internet search suggestions**
 
-3. **File Explorer**:
+1. **File Explorer**:
     * Show hidden files
     * Don't hide extensions for known file types
     * Open "This PC" by default.
   
-4. **Set the power plan to High Performance**
+1. **Set the power plan to High Performance**
 
-5. **Enable RDP**:
+1. **Enable RDP**:
     * Change registry settings to enable RDP.
     * Enable firewall rules for the associated "Remote Desktop" display group.
 
-6. **Remove the Microsoft Edge shortcut from the Public Desktop**
+1. **Remove the Microsoft Edge shortcut from the Public Desktop**
 
-7. **Run OneDrive Uninstallers**:
+1. **Run OneDrive Uninstallers**:
     * Run the uninstallers in the %localappdata% and Windows folders
 
       Note: Windows will likely install these again.
    
-8. **Desktop icons**:
+1. **Desktop icons**:
     * Show "This PC" on the desktop
     * Set the icon layout that I like (small icons & sort by item type).
 

@@ -1,89 +1,195 @@
+Function Get-RegBackup {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]
+        $backupKeyName,
+        [Parameter(Mandatory=$true)]
+        [string]
+        $backupFilename,
+        [Parameter(Mandatory=$true)]
+        [string]
+        $backupPath
+    )
+
+    $backupFileNameArray = $backupFileName -split '-'
+
+    if ($backupFileNameArray.Count -ge 4) {
+        $backupFileName = "$($backupFileNameArray[0])-$($backupFileNameArray[1])...$($backupFileNameArray[-2])-$($backupFileNameArray[-1]).reg"
+    }
+
+    reg export $backupKeyName "$backupPath\$backupFileName" /y 2> $null
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Fatal error: unable to backup registry key(s)"
+    }
+    else {
+        return $true
+    }
+}
+
 Function Set-RegValueData {
     param (
         [Parameter(Mandatory=$true)]
         [string]
-        $regPath,
+        $regKeyName,
+
+        [Parameter(Mandatory=$true)]
+        [string]
+        $regValueName,
+
+        [Parameter(Mandatory=$true)]
+        [string]
+        $regType,
 
         [Parameter(Mandatory=$true)]
         [object]
         $regValueData,
 
         [Parameter(Mandatory=$false)]
-        [switch]
-        $Create
-    )
+        [bool]
+        $regBackup,
 
-        $strRegPath = Split-Path $regPath
-        $regValue = Split-Path $regPath -Leaf
+        [Parameter(Mandatory=$false)]
+        [ValidateScript({
+            if ($regBackup -and ($_ -eq $null)) {
+                throw "$_ must have a value when regBackup is enabled"
+            }
+            return $true
+        })]
+        [string]
+        $regBackupPath
+    )
+        $preSwitchedRegKeyName = $regKeyName
+
+        # Powershell requires altering the reg key prefix
+         $regKeyName = switch -Regex ($regKeyName) {
+            '^HKEY_CLASSES_ROOT' {$_ -replace 'HKEY_CLASSES_ROOT', 'HKCR:'}
+            '^HKEY_CURRENT_USER' {$_ -replace 'HKEY_CURRENT_USER', 'HKCU:'}
+            '^HKEY_LOCAL_MACHINE' {$_ -replace 'HKEY_LOCAL_MACHINE', 'HKLM:'}
+            '^HKEY_USERS' {$_ -replace 'HKEY_USERS', 'HKU:'}
+            '^HKEY_CURRENT_CONFIG' {$_ -replace 'HKEY_CURRENT_CONFIG', 'HKCC:'}
+        }
+
+        if ($regBackup) {
+            # Create an array to store reg keys that we've already backed up
+            $backedUpKeys = @()
+            $backupFriendlyRegKeyName = $regKeyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
+        }
+
+        # Handle special cases where the data needs to be formatted from the
+        # input Json string
+        $regValueData = switch ($regType) {
+            'BINARY' {$regValueData -split ',' -as [byte[]]}
+            Default {$regValueData}
+        }
 
         # If the path to the key exists
-        if (Test-Path $strRegPath) {
+        if (Test-Path $regKeyName) {
 
-            $itemPropertyObject = Get-ItemProperty $strRegPath $regValue -ErrorAction SilentlyContinue
-            
+            $itemPropertyObject = Get-ItemProperty $regKeyName $regValueName -ErrorAction SilentlyContinue
+
             # If the key already exists
-            # Compare the passed parameter data against the existing key value data
+            # Compare the passed parameter data against the existing values
             if ($null -ne $itemPropertyObject) {
 
-                if ($itemPropertyObject.$regValue -is [array]) {
-                
-                    $valueDiff = $false
-                    
-                    for ($i=0; $i -lt $itemPropertyObject.$regValue.Count; $i++) {
-                        if ($itemPropertyObject.$regValue[$i] -ne $regValueData[$i]) {       
+                # First check whether the key is the correct type
+                $valueDiff = $false
+                $existingRegValueType = $itemPropertyObject.$regValueName.GetType().Name
+
+                $strExistingRegType = switch ($existingRegValueType) {
+                    'String' {'STRING'}
+                    'Int32' {'DWORD'}
+                    'Int64' {'QWORD'}
+                    'Byte[]' {'BINARY'}
+                    'String[]' {'MULTISTRING'}
+                    Default {'UNKNOWN'}
+                }
+
+                # Reg value exists but key types are different
+                if ($strExistingRegType -ne $regType) {
+                    $valueDiff = $true
+                }
+                # Reg value exists and key types are the same
+                else {
+                    # Compare passed reg value gainst existing
+                    if ($itemPropertyObject.$regValueName -is [array]) {
+
+                        for ($i=0; $i -lt $itemPropertyObject.$regValueName.Count; $i++) {
+                            if ($itemPropertyObject.$regValueName[$i] -ne $regValueData[$i]) {
+                                $valueDiff = $true
+                                break
+                            }
+                        }
+                    }
+                    else {
+                        if ($itemPropertyObject.$regValueName -ne $regValueData) {
                             $valueDiff = $true
-                            break
                         }
                     }
                 }
-                else {
-                    if ($itemPropertyObject.$regValue -ne $regValueData) {
-                        $valueDiff = $true
-                    }
-                }
 
-                # Differences were found so we need to update the key in the registry
+                # Differences were found
+                # Backups will currently made if we're changing existing reg key values OR
+                # if we're creating new values in a path that pre-exists
                 if ($valueDiff) {
+
+                    if ($regBackup -and $regKeyName -notin $backedUpKeys) {
+                        Get-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
+                        $backedUpKeys += $regKeyName
+                    }
+
                     try {
-                        Set-ItemProperty -Path $strRegPath -Name $regValue -Value $regValueData -ErrorAction Stop
+                        Set-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction SilentlyContinue
+                        return $true
                     }
                     catch{
-                        throw $_.Exception.Message
+                        Write-Host "$regKeyName`n$regValueName`Failed to set reg value" -ForegroundColor Red
+                        return $false
                     }
+                }
+                else {
+                    return $true
                 }
             }
             # Path exists but key doesn't
             else {
+                    # Check whether we need to backup the registry key
+                    # and do so if necessary
+                    if ($regBackup -and $regKeyName -notin $backedUpKeys) {
+                        Get-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
+                        $backedUpKeys += $regKeyName
+                    }
+
                     try {
-                        New-ItemProperty -Path $strRegPath -Name $regValue -Value $regValueData -ErrorAction Stop | Out-Null
+                        New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction SilentlyContinue | Out-Null
+                        return $true
                     }
                     catch {
-                        throw $_.Exception.Message
+                        Write-Host "$regKeyName`n$regValueName`Failed to create reg value" -ForegroundColor Red
+                        return $false
                     }
-            }  
+            }
         }
         # Path to key does not exist
         # Create the path and then try to create a new item property
-        else { 
-            if ($Create) {
-                try {
-                    New-Item -Path $strRegPath | Out-Null
-                }
-                catch {
-                    throw $_.Exception.Message
-                }
-                        
-                try {
-                    New-ItemProperty -Path $strRegPath -Name $regValue -Value $regValueData -ErrorAction Stop | Out-Null
-                }
-                catch {
-                    throw $_.Exception.Message
-                }
+        else {
+            try {
+                New-Item -Path $regKeyName -ErrorAction SilentlyContinue | Out-Null
+                return $true
             }
-            else {
-                    Write-Host $strRegPath -ForegroundColor Red
-                    Write-Host "${regValue}: $regValueData" -ForegroundColor Red
-                }
+            catch {
+                Write-Host "$regKeyName`nFailed to create reg key" -ForegroundColor Red
+                return $false
+            }
+
+            try {
+                New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction SilentlyContinue | Out-Null
+                return $true
+            }
+            catch {
+                Write-Host "$regKeyName`n$RegValueName`nFailed to create reg value" -ForegroundColor Red
+                return $false
+            }
         }
 }
 
@@ -102,125 +208,86 @@ if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]
     Exit 1
 }
 
-<#
+# Check for whether to enable backups or not
+# Disable if running in Windows Sandbox as read-only access and... it's a sandbox
+$backupsEnabled = $true
 
-Set the dark theme
+if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
+    $backupsEnabled = $false
+}
 
-#>
+if ($backupsEnabled) {
+    # Initialise the backup folders
+    $backupDir = "$PSScriptRoot\backups"
+    $scriptRunID = Get-date -Format 'dd-MM-yy_HH-mm-ss'
+    $scriptRunBackupDir = "$backupDir\$scriptRunID"
 
-Write-Host 'Applying dark theme...'
+    # Create the backup dir
+    $backupDirs = @(
+        $backupDir,
+        $scriptRunBackupDir
+    )
 
-$currentTheme = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes' `
-                                  'CurrentTheme' -ErrorAction Stop).CurrentTheme
-$newTheme = 'C:\Windows\resources\Themes\dark.theme'
-$newThemeWallpaper = 'C:\Windows\web\wallpaper\Windows\img19.jpg'
+    foreach ($dir in $backupDirs) {
+        if (!(Test-Path $dir))  {
+            try {
+                New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
+            }
+            catch {
+                throw "Unable to create backup directory: $dir"
+            }
+        }
+    }
+}
 
-if($newTheme -ne $currentTheme) {
+# Load JSON file with the registry tweaks
+$registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
 
-    $regDictTheme = @{
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\CurrentTheme' = [string] $newTheme
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\HighContrast\Pre-High Contrast Scheme' = [string] $newTheme
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme' = [int] 0
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\SystemUsesLightTheme' = [int] 0
-        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\ThemeMRU' = [string] "$newTheme;$currentTheme;"
+foreach ($category in $registryJSON.PSObject.Properties.Name) {
+
+    Write-Host ("Applying registry tweaks for $category")
+
+    $tweakCount = ($registryJSON.$category | Where-Object {$_.Active -eq 'true'}).Count
+    $successfulTweaks = 0
+
+    foreach ($tweak in $registryJSON.$category) {
+
+        if ($tweak.Active.ToUpper() -eq 'TRUE') {
+
+            if ($tweak.Action.ToUpper() -eq 'ADD') {
+
+                $regParams = @{
+                    regKeyName = $tweak.RegPath
+                    regValueName = $tweak.Name
+                    regType = $tweak.Type.ToUpper()
+                    regValueData = $tweak.Value
+                }
+
+                if ($backupsEnabled) {
+                    $regParams['regBackup'] = $true
+                    $regParams['regBackupPath'] = $scriptRunBackupDir
+                }
+
+                $setOrUpdateReg = Set-RegValueData @regParams
+
+                if ($setOrUpdateReg) {
+                    $successfulTweaks++
+                }
+            }
+        }
     }
 
-    if (Test-Path $newThemeWallpaper) {
-        $regDictTheme['HKCU:\Control Panel\Desktop\WallPaper'] = [string] $newThemeWallpaper
+    $foregroundColour = switch ($successfulTweaks) {
+        {$successfulTweaks -eq 0} {'Red'}
+        {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {'Yellow'}
+        {$successfulTweaks -eq $tweakCount} {'Green'}
+        default {'White'}
     }
 
-    foreach ($key in $regDictTheme.GetEnumerator()) { 
-        Set-RegValueData $key.Name $key.Value
-    }
+    Write-Host "$successfulTweaks/$tweakCount successful tweaks successful" -ForegroundColor $foregroundColour
 }
 
-<#
-
-Show 'This PC' and custom icon settings
-Small icons, sort by item type.
-
-#>
-
-Write-Host 'Setting icon layout...'
-
-$iconLayoutsByteArray = 
-@(
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,0,1,0,1,0,2,0,0,0,0,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,50,0
-    48,0,68,0,48,0,52,0,70,0,69,0,48,0,45,0,51,0,65,0,69,0,65,0,45,0,49,0,48,0,54,0,57,0,45,0,65,0,50,0,68
-    0,56,0,45,0,48,0,56,0,48,0,48,0,50,0,66,0,51,0,48,0,51,0,48,0,57,0,68,0,125,0,62,0,32,0,32,0,0,0,44,0
-    0,0,0,0,0,0,58,0,58,0,123,0,54,0,52,0,53,0,70,0,70,0,48,0,52,0,48,0,45,0,53,0,48,0,56,0,49,0,45,0,49
-    0,48,0,49,0,66,0,45,0,57,0,70,0,48,0,56,0,45,0,48,0,48,0,65,0,65,0,48,0,48,0,50,0,70,0,57,0,53,0,52,0
-    69,0,125,0,62,0,32,0,32,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0
-    0,0,0,0,34,0,0,0,16,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,63,1,0
-)
-
- $regDictIcons = @{
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\ClassicStartMenu\{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel\{20D04FE0-3AEA-1069-A2D8-08002B30309D}' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\Shell\Bags\1\Desktop\IconLayouts' = [array] $iconLayoutsByteArray
- }
-
- foreach ($key in $regDictIcons.GetEnumerator()) {
-    Set-RegValueData $key.Name $key.Value
- }
-
-
-<# 
-
-Taskbar: Align to left, hide Copilot button, Widgets button and search
-
-#>
-
-Write-Host 'Tweaking Taskbar...'
-
-$regDictTaskbar = @{
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search\SearchboxTaskbarMode' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\ShowCopilotButton' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarAl' = [int] 0
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDa' = [int] 0
-}
-
-
-foreach ($key in $regDictTaskbar.GetEnumerator()) { 
-    Set-RegValueData $key.Name $key.Value
-}
-
-<#
-
-Disable online search from start menu
-
-#>
-
-Write-Host 'Setting Windows Explorer policies...'
-
-Set-RegValueData -regPath 'HKCU:\Software\Policies\Microsoft\Windows\Explorer\DisableSearchBoxSuggestions' -regValueData 1 -Create
-
-<#
-
-Set File Explorer to:
-Launch to This PC
-Show hidden files and known folder extensions
-
-#>
-
-Write-Host 'Tweaking File Explorer...'
-
-$regDictFileExplorer = @{
-'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\Hidden' = [int] 1
-'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\HideFileExt' = [int] 0
-'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\LaunchTo' = [int] 1
-}
-
-foreach ($key in $regDictFileExplorer.GetEnumerator()) { 
-    Set-RegValueData $key.Name $key.Value
-}
-
-<#
-
-Set the High Performance power plan
-
-#>
-
+# Set the High Performance power plan
 
 Write-Host 'Tweaking power plan...'
 
@@ -235,61 +302,55 @@ if ($powerSchemes) {
     if ($activeSchemeGUID -ne $desiredSchemeGUID) {
         powercfg /setactive $desiredSchemeGUID
     }
+
+    if ($(powercfg /getactivescheme) -match 'High performance')
+    {
+        Write-Host "High performance profile active" -ForegroundColor Green
+    }
 }
 
-<#
+# Enable RDP
 
-Enable RDP
+Write-Host 'Enabling RDP firewall rules...'
 
-#>
-
-Write-Host 'Tweaking RDP...'
-
-$regDictRDPEnable = @{
-    'HKLM:\SYSTEM\ControlSet001\Control\Terminal Server\fDenyTSConnections' = [int] 0
-    'HKLM:\SYSTEM\ControlSet001\Control\Terminal Server\updateRDStatus' = [int] 1
+try {
+    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+    Write-Host "Firewall rules enabled" -ForegroundColor Green
+}
+catch {
+    Write-Host "Failed to activate firewall rules" -ForegroundColor Red
 }
 
-
-foreach ($key in $regDictRDPEnable.GetEnumerator()) { 
-    Set-RegValueData $key.Name $key.Value
-}
-
-Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-
-<#
-
-Refresh user system parameters and then restart Explorer
-
-#>
-
-Write-Host 'Refreshing...'
-
-Start-Process "RUNDLL32.EXE" -ArgumentList "USER32.DLL,UpdatePerUserSystemParameters ,1 ,True" -PassThru | Wait-Process
-Stop-Process -Name explorer -PassThru | Wait-Process
-
-<#
-
-Remove public desktop shortcuts
-
-#>
+# Remove Public Desktop shortcuts
 
 Write-Host 'Removing specified Public Desktop shortcuts...'
 
 $publicDesktopShortcuts = @(
     'C:\Users\Public\Desktop\Microsoft Edge.lnk'
-    )
+)
+
+$publicDesktopShortcutsFound = $false
 
 foreach ($shortcut in $publicDesktopShortcuts) {
-    Remove-item $shortcut
+
+    if (Test-Path $shortcut) {
+        $publicDesktopShortcutsFound = $true
+        try {
+            Remove-item $shortcut
+            Write-Host "$shortcut`nRemoved" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "$shortcut`nFailed to remove" -ForegroundColor Red
+        }
+
+    }
 }
 
+if(!$publicDesktopShortcutsFound) {
+    Write-Host 'No shortcuts require removal' -ForegroundColor Green
+}
 
-<#
-
-Uninstall OneDrive
-
-#>
+# Uninstall OneDrive
 
 Write-Host 'Uninstalling OneDrive (if installed)...'
 
@@ -314,11 +375,13 @@ if(Test-Path "$env:systemroot\SysWOW64\OneDriveSetup.exe") {
     & "$env:systemroot\SysWOW64\OneDriveSetup.exe" /uninstall /allusers
 }
 
-<#
-
-"Refresh" the desktop etc. with direct call to RUNDLL32
-
-#>
-
- # Refresh the desktop
+#"Refresh" the desktop etc. with direct call to RUNDLL32
  Start-Process "RUNDLL32.EXE" -ArgumentList "USER32.DLL,UpdatePerUserSystemParameters ,1 ,True" -PassThru | Wait-Process
+ Stop-Process -Name explorer -PassThru | Wait-Process
+
+ # Remove backup directory if no changes were made
+ if ($backupsEnabled) {
+    if (!(Get-ChildItem -Path $scriptRunBackupDir)) {
+        Remove-Item -Path $scriptRunBackupDir
+    }
+ }

@@ -1,275 +1,275 @@
 {
-    "Windows Theme": [
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
-            "Name": "CurrentTheme",
-            "Type": "STRING",
-            "Value": "C:\\Windows\\resources\\Themes\\dark.theme",
-            "Notes": "Set the active theme to Windows(dark)"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\HighContrast",
-            "Name": "Pre-High Contrast Scheme",
-            "Type": "STRING",
-            "Value": "C:\\Windows\\$1esources\\Themes\\dark.theme",
-            "Notes": "Set the active theme to Windows(dark)"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-            "Name": "AppsUseLightTheme",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Set the active theme to Windows(dark)"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-            "Name": "SystemUsesLightTheme",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Set the active theme to Windows(dark)"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
-            "Name": "ThemeMRU",
-            "Type": "STRING",
-            "Value": "C:\\Windows\\resources\\Themes\\dark.theme;C:\\Windows\\resources\\Themes\\aero.theme;",
-            "Notes": "Set the active theme to Windows(dark)"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Control Panel\\Desktop",
-            "Name": "WallPaper",
-            "Type": "STRING",
-            "Value": "C:\\Windows\\web\\wallpaper\\Windows\\img19.jpg",
-            "Notes": "Set the active theme to Windows(dark)"
-        }
-    ],
-    "Desktop Icons": [
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
-            "Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Show \"This PC\" on the desktop"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
-            "Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Show \"This PC\" on the desktop"
-        },
-        {
-            "Active": "false",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop",
-            "Name": "IconLayouts",
-            "Type": "BINARY",
-            "Value": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,0,1,0,1,0,2,0,0,0,0,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,50,0,48,0,68,0,48,0,52,0,70,0,69,0,48,0,45,0,51,0,65,0,69,0,65,0,45,0,49,0,48,0,54,0,57,0,45,0,65,0,50,0,68,0,56,0,45,0,48,0,56,0,48,0,48,0,50,0,66,0,51,0,48,0,51,0,48,0,57,0,68,0,125,0,62,0,32,0,32,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,54,0,52,0,53,0,70,0,70,0,48,0,52,0,48,0,45,0,53,0,48,0,56,0,49,0,45,0,49,0,48,0,49,0,66,0,45,0,57,0,70,0,48,0,56,0,45,0,48,0,48,0,65,0,65,0,48,0,48,0,50,0,70,0,57,0,53,0,52,0,69,0,125,0,62,0,32,0,32,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,34,0,0,0,16,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,63,1,0",
-            "Notes": "Small desktop icons & sort as item type"
-        }
-    ],
-    "Taskbar": [
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
-            "Name": "SearchboxTaskbarMode",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Hide the Search button"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "ShowCopilotButton",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Hide the Copilot button"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "TaskbarDa",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Hide the Widget button"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "TaskbarAl",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Align the taskbar to the left"
-        }
-    ],
-    "File Explorer": [
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "Hidden",
-            "Type": "DWORD",
-            "Value": 1,
-            "Notes": "Show hidden files"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "HideFileExt",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Show extensions for known file types"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "LaunchTo",
-            "Type": "DWORD",
-            "Value": 1,
-            "Notes": "Launch to This PC"
-        }
-    ],
-    "Remote Desktop": [
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Terminal Server",
-            "Name": "fDenyTSConnections",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Enable RDP"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Terminal Server",
-            "Name": "updateRDStatus",
-            "Type": "DWORD",
-            "Value": 1,
-            "Notes": "Enable RDP"
-        }
-    ],
-    "Privacy / Annoyances": [
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\Explorer",
-            "Name": "DisableSearchBoxSuggestions",
-            "Type": "DWORD",
-            "Value": 1,
-            "Notes": "Disable online search suggestions"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
-            "Name": "Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Let apps show me personalised ads by using my advertising ID"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-            "Name": "SubscribedContent-338387Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Get fun facts, tips, tricks and more on your lock screen"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-            "Name": "SubscribedContent-338389Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable notifications 'Get tips and suggestions when using Windows"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-            "Name": "SubscribedContent-338393Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Show me suggested settings content in the Settings app'"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-            "Name": "SubscribedContent-353694Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Show me suggested settings content in the Settings app'"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-            "Name": "SubscribedContent-353696Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Show me suggested settings content in the Settings app'"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-            "Name": "SubscribedContent-310093Enabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Show me Windows welcome experience after updates and when signed in to show what's new and suggested'"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
-            "Name": "ScoobeSystemSettingEnabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Suggest ways to get the most out of Windows and finish setting up this device'"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Privacy",
-            "Name": "TailoredExperiencesWithDiagnosticDataEnabled",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Tailored experiences'"
-        },
-        {
-            "Active": "true",
-            "Action": "ADD",
-            "RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
-            "Name": "Start_IrisRecommendations",
-            "Type": "DWORD",
-            "Value": 0,
-            "Notes": "Disable 'Show recommendations for tips, shortcuts, new apps and more' in start menu"
-        }
-    ]
+	"Desktop Icons": [
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
+			"Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Show \"This PC\" on the desktop"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
+			"Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Show \"This PC\" on the desktop"
+		},
+		{
+			"Active": "false",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop",
+			"Name": "IconLayouts",
+			"Type": "BINARY",
+			"Value": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1,0,1,0,1,0,2,0,0,0,0,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,50,0,48,0,68,0,48,0,52,0,70,0,69,0,48,0,45,0,51,0,65,0,69,0,65,0,45,0,49,0,48,0,54,0,57,0,45,0,65,0,50,0,68,0,56,0,45,0,48,0,56,0,48,0,48,0,50,0,66,0,51,0,48,0,51,0,48,0,57,0,68,0,125,0,62,0,32,0,32,0,0,0,44,0,0,0,0,0,0,0,58,0,58,0,123,0,54,0,52,0,53,0,70,0,70,0,48,0,52,0,48,0,45,0,53,0,48,0,56,0,49,0,45,0,49,0,48,0,49,0,66,0,45,0,57,0,70,0,48,0,56,0,45,0,48,0,48,0,65,0,65,0,48,0,48,0,50,0,70,0,57,0,53,0,52,0,69,0,125,0,62,0,32,0,32,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0,0,0,0,0,34,0,0,0,16,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,63,1,0",
+			"Notes": "Small desktop icons & sort as item type"
+		}
+	],
+	"File Explorer": [
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "Hidden",
+			"Type": "DWORD",
+			"Value": 1,
+			"Notes": "Show hidden files"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "HideFileExt",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Show extensions for known file types"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "LaunchTo",
+			"Type": "DWORD",
+			"Value": 1,
+			"Notes": "Launch to This PC"
+		}
+	],
+	"Privacy / Annoyances": [
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\Explorer",
+			"Name": "DisableSearchBoxSuggestions",
+			"Type": "DWORD",
+			"Value": 1,
+			"Notes": "Disable online search suggestions"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+			"Name": "Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Let apps show me personalised ads by using my advertising ID"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+			"Name": "SubscribedContent-338387Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Get fun facts, tips, tricks and more on your lock screen"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+			"Name": "SubscribedContent-338389Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable notifications 'Get tips and suggestions when using Windows"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+			"Name": "SubscribedContent-338393Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Show me suggested settings content in the Settings app'"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+			"Name": "SubscribedContent-353694Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Show me suggested settings content in the Settings app'"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+			"Name": "SubscribedContent-353696Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Show me suggested settings content in the Settings app'"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+			"Name": "SubscribedContent-310093Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Show me Windows welcome experience after updates and when signed in to show what's new and suggested'"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+			"Name": "ScoobeSystemSettingEnabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Suggest ways to get the most out of Windows and finish setting up this device'"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Privacy",
+			"Name": "TailoredExperiencesWithDiagnosticDataEnabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Tailored experiences'"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "Start_IrisRecommendations",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Show recommendations for tips, shortcuts, new apps and more' in start menu"
+		}
+	],
+	"Remote Desktop": [
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Terminal Server",
+			"Name": "fDenyTSConnections",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Enable RDP"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Terminal Server",
+			"Name": "updateRDStatus",
+			"Type": "DWORD",
+			"Value": 1,
+			"Notes": "Enable RDP"
+		}
+	],
+	"Taskbar": [
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
+			"Name": "SearchboxTaskbarMode",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Hide the Search button"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "ShowCopilotButton",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Hide the Copilot button"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "TaskbarDa",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Hide the Widget button"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "TaskbarAl",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Align the taskbar to the left"
+		}
+	],
+	"Windows Theme": [
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
+			"Name": "CurrentTheme",
+			"Type": "STRING",
+			"Value": "C:\\Windows\\resources\\Themes\\dark.theme",
+			"Notes": "Set the active theme to Windows(dark)"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\HighContrast",
+			"Name": "Pre-High Contrast Scheme",
+			"Type": "STRING",
+			"Value": "C:\\Windows\\resources\\Themes\\dark.theme",
+			"Notes": "Set the active theme to Windows(dark)"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			"Name": "AppsUseLightTheme",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Set the active theme to Windows(dark)"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			"Name": "SystemUsesLightTheme",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Set the active theme to Windows(dark)"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
+			"Name": "ThemeMRU",
+			"Type": "STRING",
+			"Value": "C:\\Windows\\resources\\Themes\\dark.theme;C:\\Windows\\resources\\Themes\\aero.theme;",
+			"Notes": "Set the active theme to Windows(dark)"
+		},
+		{
+			"Active": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Control Panel\\Desktop",
+			"Name": "WallPaper",
+			"Type": "STRING",
+			"Value": "C:\\Windows\\web\\wallpaper\\Windows\\img19.jpg",
+			"Notes": "Set the active theme to Windows(dark)"
+		}
+	]
 }

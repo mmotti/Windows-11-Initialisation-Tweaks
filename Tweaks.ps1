@@ -250,12 +250,8 @@ if ($backupsEnabled) {
 }
 
 # Load JSON file with the registry tweaks
-try {
-    $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
-}
-catch {
-    Write-Error -Message "Failed to process registry Json file."
-}
+
+$registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
 
 if ($registryJSON) {
 

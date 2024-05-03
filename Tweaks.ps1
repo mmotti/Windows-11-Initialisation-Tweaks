@@ -28,7 +28,7 @@ Class RegistryKey {
         }
 
         if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
-            Write-Host "$($psFriendlyKeyName)`nAdmin access required." -ForegroundColor Red
+            Write-Host "$($psFriendlyKeyName)`nAdmin access required." -ForegroundColor Yellow
             return $false
         }
      

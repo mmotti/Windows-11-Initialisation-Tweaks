@@ -1,53 +1,25 @@
-Function Export-RegBackup {
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]
-        $backupKeyName, $backupFilename, $backupPath
-    )
-
-    $backupFileNameArray = $backupFileName -split '-'
-
-    if ($backupFileNameArray.Count -ge 4) {
-        $backupFileName = "$($backupFileNameArray[0])-$($backupFileNameArray[1])...$($backupFileNameArray[-2])-$($backupFileNameArray[-1]).reg"
+Class RegistryKey {
+    [string] $keyName
+    [string] $valueName
+    [string] $type
+    [string] $valueData
+    [string] $backupDirectory
+    
+    RegistryKey ([string]$keyName, [string]$valueName, [string]$type, [string]$valueData, [string]$backupDirectory) {
+        $this.keyName = $keyName
+        $this.valueName = $valueName
+        $this.type = $type
+        $this.valueData = $valueData
+        $this.backupDirectory = $backupDirectory
     }
 
-    reg export $backupKeyName "$backupPath\$backupFileName" /y 2>&1 > $null
+    [bool] addToReg() {
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "$backupKeyName`n$backupPath\$backupFileName`nFatal error: unable to backup registry key(s)"
-        return $false
-    }
-    else {
-        return $true
-    }
-}
-
-Function Set-RegValueData {
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]
-        $regKeyName, $regValueName, $regType, $regValueData,
-
-        [Parameter(Mandatory=$false)]
-        [bool]
-        $regBackup,
-
-        [Parameter(Mandatory=$false)]
-        [ValidateScript({
-            if ($regBackup -and ($_ -eq $null)) {
-                Write-Host "$_ must have a value when regBackup is enabled"
-                return $false
-            }
-            return $true
-        })]
-        [string]
-        $regBackupPath
-    )
-
-        $preSwitchedRegKeyName = $regKeyName
+        $arrBackedUpKeys = @()
+        $preSwitchedRegKeyName = $this.keyName
 
         # Powershell requires altering the reg key prefix
-         $regKeyName = switch -Regex ($regKeyName) {
+         $psFriendlyKeyName = switch -Regex ($this.keyName) {
             #'^HKEY_CLASSES_ROOT' {$_ -replace 'HKEY_CLASSES_ROOT', 'HKCR:'}
             '^HKEY_CURRENT_USER' {$_ -replace 'HKEY_CURRENT_USER', 'HKCU:'}
             '^HKEY_LOCAL_MACHINE' {$_ -replace 'HKEY_LOCAL_MACHINE', 'HKLM:'}
@@ -55,34 +27,22 @@ Function Set-RegValueData {
             #'^HKEY_CURRENT_CONFIG' {$_ -replace 'HKEY_CURRENT_CONFIG', 'HKCC:'}
         }
 
-        if ($regKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
-            Write-Host "$regKeyName`nAdmin access required." -ForegroundColor Red
+        if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
+            Write-Host "$($psFriendlyKeyName)`nAdmin access required." -ForegroundColor Red
             return $false
         }
-
-        if ($regBackup) {
-            # Create an array to store reg keys that we've already backed up
-            $backedUpKeys = @()
-            $backupFriendlyRegKeyName = $regKeyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
-
-            $backupParams = @{
-                backupKeyName = $preSwitchedRegKeyName
-                backupFileName = $backupFriendlyRegKeyName
-                backupPath = $regBackupPath
-            }
-        }
-
+     
         # Handle special cases where the data needs to be formatted from the
         # input Json string
-        $regValueData = switch ($regType) {
-            'BINARY' {$regValueData -split ',' -as [byte[]]}
-            Default {$regValueData}
+        $this.valueData = switch ($this.type) {
+            'BINARY' {$this.valueData -split ',' -as [byte[]]}
+            Default {$this.valueData}
         }
 
         # If the path to the key exists
-        if (Test-Path $regKeyName) {
+        if (Test-Path $psFriendlyKeyName) {
 
-            $itemPropertyObject = Get-ItemProperty $regKeyName $regValueName -ErrorAction SilentlyContinue
+            $itemPropertyObject = Get-ItemProperty $psFriendlyKeyName $this.valueName -ErrorAction SilentlyContinue
 
             # If the key already exists
             # Compare the passed parameter data against the existing values
@@ -90,7 +50,7 @@ Function Set-RegValueData {
 
                 # First check whether the key is the correct type
                 $valueDiff = $false
-                $existingRegValueType = $itemPropertyObject.$regValueName.GetType().Name
+                $existingRegValueType = $itemPropertyObject.$($this.valueName).GetType().Name
 
                 $strExistingRegType = switch ($existingRegValueType) {
                     'String' {'STRING'}
@@ -102,23 +62,23 @@ Function Set-RegValueData {
                 }
 
                 # Reg value exists but key types are different
-                if ($strExistingRegType -ne $regType) {
+                if ($strExistingRegType -ne $this.type) {
                     $valueDiff = $true
                 }
                 # Reg value exists and key types are the same
                 else {
-                    # Compare passed reg value gainst existing
-                    if ($itemPropertyObject.$regValueName -is [array]) {
+                    # Compare passed reg value against existing
+                    if ($itemPropertyObject.$($this.valueName) -is [array]) {
 
-                        for ($i=0; $i -lt $itemPropertyObject.$regValueName.Count; $i++) {
-                            if ($itemPropertyObject.$regValueName[$i] -ne $regValueData[$i]) {
+                        for ($i=0; $i -lt $itemPropertyObject.$($this.valueName).Count; $i++) {
+                            if ($itemPropertyObject.$($this.valueName)[$i] -ne $this.valueData[$i]) {
                                 $valueDiff = $true
                                 break
                             }
                         }
                     }
                     else {
-                        if ($itemPropertyObject.$regValueName -ne $regValueData) {
+                        if ($itemPropertyObject.$($this.valueName) -ne $this.valueData) {
                             $valueDiff = $true
                         }
                     }
@@ -128,24 +88,24 @@ Function Set-RegValueData {
                 # Backups will currently made if we're changing existing reg key values OR
                 # if we're creating new values in a path that pre-exists
                 if ($valueDiff) {
+                
+                    if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
 
-                    if ($regBackup -and $regKeyName -notin $backedUpKeys) {
-
-                        $exportKeys = Export-RegBackup @backupParams
+                        $exportKeys = $this.backupRegKey()
 
                         if (!$exportKeys) {
                             return $false
                         }
 
-                        $backedUpKeys += $regKeyName
+                        $arrBackedUpKeys += $psFriendlyKeyName
                     }
 
                     try {
-                        Set-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction Stop
+                        Set-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -Type $this.type -Value $this.valueData -ErrorAction Stop
                         return $true
                     }
                     catch{
-                        Write-Host "$regKeyName`n$regValueName`Failed to set reg value"
+                        Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`Failed to set reg value"
                         return $false
                     }
                 }
@@ -157,23 +117,23 @@ Function Set-RegValueData {
             else {
                     # Check whether we need to backup the registry key
                     # and do so if necessary
-                    if ($regBackup -and $regKeyName -notin $backedUpKeys) {
+                    if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
 
-                        $exportKeys = Export-RegBackup @backupParams
+                        $exportKeys = $this.backupRegKey()
 
                         if (!$exportKeys) {
                             return $false
                         }
 
-                        $backedUpKeys += $regKeyName
+                        $arrBackedUpKeys += $psFriendlyKeyName
                     }
 
                     try {
-                        New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction Stop | Out-Null
+                        New-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -Type $this.type -Value $this.valueData -ErrorAction Stop | Out-Null
                         return $true
                     }
                     catch {
-                        Write-Host "$regKeyName`n$regValueName`Failed to create reg value" -ForegroundColor Red
+                        Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`Failed to create reg value" -ForegroundColor Red
                         return $false
                     }
             }
@@ -184,23 +144,56 @@ Function Set-RegValueData {
             try {
                 # Be careful worth New-Item -Force
                 # Always verify the directory does not exist beforehand
-                New-Item -Path $regKeyName -Force -ErrorAction Stop | Out-Null
+                New-Item -Path $psFriendlyKeyName -Force -ErrorAction Stop | Out-Null
             }
             catch {
-                Write-Host "$regKeyName`nFailed to create reg key" -ForegroundColor Red
+                Write-Host "$($psFriendlyKeyName)`nFailed to create reg key" -ForegroundColor Red
                 return $false
             }
 
             try {
-                New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction Stop | Out-Null
+                New-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -Type $this.type -Value $this.valueData -ErrorAction Stop | Out-Null
             }
             catch {
-                Write-Host "$regKeyName`n$RegValueName`nFailed to create reg value" -ForegroundColor Red
+                Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`nFailed to create reg value" -ForegroundColor Red
                 return $false
             }
 
             return $true
         }
+    }
+
+    [bool] backupRegKey() {
+        
+        if ($null -eq $this.backupDirectory) {
+            Write-Error "You did not specify a backup directory."
+            return $false
+        }
+
+        if (!(Test-Path $this.backupDirectory)) {
+            Write-Error "The specified backup directory does not exist."
+            return  $false
+        }
+
+        $backupFriendlyFileName = $this.keyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
+        
+        $arrFileName = $backupFriendlyFileName -split '-'
+        
+
+        if ($arrFileName.Count -ge 4) {
+            $backupFriendlyFileName = "$($arrFileName[0])-$($arrFileName[1])...$($arrFileName[-2])-$($arrFileName[-1]).reg"
+        }
+
+        reg export $this.keyName "$($this.backupDirectory)\$backupFriendlyFileName" /y 2>&1 > $null
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "$($this.keyName)`n$($this.backupDirectory)\$backupFriendlyFileName`nFatal error: unable to backup registry key(s)"
+            return $false
+        }
+        else {
+            return $true
+        }
+    }
 }
 
 Function Test-IsAdmin {
@@ -257,57 +250,60 @@ if ($backupsEnabled) {
 }
 
 # Load JSON file with the registry tweaks
-$registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
+try {
+    $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
+}
+catch {
+    Write-Error -Message "Failed to process registry Json file."
+}
 
-foreach ($category in $registryJSON.PSObject.Properties.Name) {
+if ($registryJSON) {
 
-    Write-Host ("Applying registry tweaks for $category")
-    $tweaks = $registryJSON.$category | Where-Object {$_.Active -eq 'true'}
-    $tweakCount = $tweaks.Count
-    $successfulTweaks = 0
+    foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
-    foreach ($tweak in $tweaks) {
-
-        $requiredProperties = @('Active', 'Action', 'RegPath', 'Name', 'Type', 'Value')
-
-        if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
-            continue
-        }
-
-        if ($tweak.Active.ToUpper() -eq 'TRUE') {
-
-            if ($tweak.Action.ToUpper() -eq 'ADD') {
-
-                $regParams = @{
-                    regKeyName = $tweak.RegPath
-                    regValueName = $tweak.Name
-                    regType = $tweak.Type.ToUpper()
-                    regValueData = $tweak.Value
-                }
-
-                if ($backupsEnabled) {
-                    $regParams['regBackup'] = $true
-                    $regParams['regBackupPath'] = $scriptRunBackupDir
-                }
-
-                $setResult = Set-RegValueData @regParams
-
-                if ($setResult) {
-                    $successfulTweaks++
+        Write-Host ("Applying registry tweaks for $category")
+        $tweaks = $registryJSON.$category | Where-Object {$_.Active -eq 'true'}
+        $tweakCount = $tweaks.Count
+        $successfulTweaks = 0
+    
+        foreach ($tweak in $tweaks) {
+    
+            $requiredProperties = @('Active', 'Action', 'RegPath', 'Name', 'Type', 'Value')
+    
+            if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
+                continue
+            }
+    
+            if ($tweak.Active.ToUpper() -eq 'TRUE') {
+    
+                if ($tweak.Action.ToUpper() -eq 'ADD') {
+    
+                    $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
+    
+                    if ($backupsEnabled) {
+                        $regKeyObject.backupDirectory = $scriptRunBackupDir
+                    }
+    
+                    $setResult = $regKeyObject.addToReg()
+    
+                    if ($setResult) {
+                        $successfulTweaks++
+                    }
                 }
             }
         }
+    
+        $foregroundColour = switch ($successfulTweaks) {
+            {$successfulTweaks -eq 0} {'Red'}
+            {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {'Yellow'}
+            {$successfulTweaks -eq $tweakCount} {'Green'}
+            default {'White'}
+        }
+    
+        Write-Host "$successfulTweaks/$tweakCount successful tweaks successful" -ForegroundColor $foregroundColour
     }
-
-    $foregroundColour = switch ($successfulTweaks) {
-        {$successfulTweaks -eq 0} {'Red'}
-        {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {'Yellow'}
-        {$successfulTweaks -eq $tweakCount} {'Green'}
-        default {'White'}
-    }
-
-    Write-Host "$successfulTweaks/$tweakCount successful tweaks successful" -ForegroundColor $foregroundColour
 }
+
 
 # Set the High Performance power plan
 

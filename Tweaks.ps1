@@ -2,7 +2,7 @@ Function Export-RegBackup {
     param (
         [Parameter(Mandatory=$true)]
         [string]
-        $backupKeyName, $backupFilename, $backupPath    
+        $backupKeyName, $backupFilename, $backupPath
     )
 
     $backupFileNameArray = $backupFileName -split '-'
@@ -59,7 +59,7 @@ Function Set-RegValueData {
             Write-Host "$regKeyName`nAdmin access required." -ForegroundColor Red
             return $false
         }
-       
+
         if ($regBackup) {
             # Create an array to store reg keys that we've already backed up
             $backedUpKeys = @()
@@ -130,9 +130,9 @@ Function Set-RegValueData {
                 if ($valueDiff) {
 
                     if ($regBackup -and $regKeyName -notin $backedUpKeys) {
-                        
+
                         $exportKeys = Export-RegBackup @backupParams
-                        
+
                         if (!$exportKeys) {
                             return $false
                         }
@@ -160,7 +160,7 @@ Function Set-RegValueData {
                     if ($regBackup -and $regKeyName -notin $backedUpKeys) {
 
                         $exportKeys = Export-RegBackup @backupParams
-                        
+
                         if (!$exportKeys) {
                             return $false
                         }
@@ -273,7 +273,7 @@ foreach ($category in $registryJSON.PSObject.Properties.Name) {
         if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
             continue
         }
-            
+
         if ($tweak.Active.ToUpper() -eq 'TRUE') {
 
             if ($tweak.Action.ToUpper() -eq 'ADD') {
@@ -289,12 +289,12 @@ foreach ($category in $registryJSON.PSObject.Properties.Name) {
                     $regParams['regBackup'] = $true
                     $regParams['regBackupPath'] = $scriptRunBackupDir
                 }
-                
+
                 $setResult = Set-RegValueData @regParams
 
                 if ($setResult) {
                     $successfulTweaks++
-                }       
+                }
             }
         }
     }
@@ -384,7 +384,7 @@ Write-Host 'Checking for OneDrive...'
 $oneDriveProcessName = 'OneDrive.exe'
 $oneDriveUserPath = "$env:LOCALAPPDATA\Microsoft\OneDrive\*\OneDriveSetup.exe"
 $oneDriveSystemPaths = @(
-    "$env:systemroot\System32\OneDriveSetup.exe", 
+    "$env:systemroot\System32\OneDriveSetup.exe",
     "$env:systemroot\SysWOW64\OneDriveSetup.exe"
 )
 
@@ -406,7 +406,7 @@ if ($userIsAdmin) {
 }
 # This will still require elevation
 else {
-   
+
     # %localappdata installer
     if (Test-Path $oneDriveUserPath) {
         $oneDriveUserPath = Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\OneDrive\" `

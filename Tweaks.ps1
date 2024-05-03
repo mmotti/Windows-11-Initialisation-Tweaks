@@ -330,7 +330,6 @@ foreach ($shortcut in $publicDesktopShortcuts) {
         catch {
             Write-Host "$shortcut`nFailed to remove" -ForegroundColor Red
         }
-
     }
 }
 

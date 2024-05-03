@@ -1,8 +1,9 @@
 # Windows 11 initialisation Tweaks
 This script is a user "initialisation" for fresh Windows installs (after OOBE). It's here to make my life easier with VMs and such.
 
+Items marked <code style="color : red">*</code> require the script to be elevated as Administrator
+
 ## Usage
-Run as Administrator
 ```
 powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ```
@@ -32,14 +33,15 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
   
 1. **Set the power plan to High Performance.**
 
-1. **Enable RDP:**
+1. **Enable RDP** <code style="color : red">*</code>
     * Change registry settings to enable RDP.
     * Enable firewall rules for the associated "Remote Desktop" display group.
 
-1. **Remove the Microsoft Edge shortcut from the Public Desktop.**
+1. **Remove the Microsoft Edge shortcut from the Public Desktop** <code style="color : red">*</code>
 
 1. **Run OneDrive Uninstallers:**
-    * Run the uninstallers in the %localappdata% and Windows folders.
+    * Run the uninstaller within the %localappdata% folder.
+    * Run the uninstaller within the Windows folders with `/uninstall /allusers` <code style="color : red">*</code>
 
       Note: Windows will likely install these again.
 

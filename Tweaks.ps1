@@ -11,10 +11,11 @@ Function Export-RegBackup {
         $backupFileName = "$($backupFileNameArray[0])-$($backupFileNameArray[1])...$($backupFileNameArray[-2])-$($backupFileNameArray[-1]).reg"
     }
 
-    reg export $backupKeyName "$backupPath\$backupFileName" /y 2> $null
+    reg export $backupKeyName "$backupPath\$backupFileName" /y 2>&1 > $null
 
     if ($LASTEXITCODE -ne 0) {
-        throw "Fatal error: unable to backup registry key(s)"
+        Write-Error "$backupKeyName`n$backupPath\$backupFileName`nFatal error: unable to backup registry key(s)"
+        return $false
     }
     else {
         return $true
@@ -34,28 +35,41 @@ Function Set-RegValueData {
         [Parameter(Mandatory=$false)]
         [ValidateScript({
             if ($regBackup -and ($_ -eq $null)) {
-                throw "$_ must have a value when regBackup is enabled"
+                Write-Host "$_ must have a value when regBackup is enabled"
+                return $false
             }
             return $true
         })]
         [string]
         $regBackupPath
     )
+
         $preSwitchedRegKeyName = $regKeyName
 
         # Powershell requires altering the reg key prefix
          $regKeyName = switch -Regex ($regKeyName) {
-            '^HKEY_CLASSES_ROOT' {$_ -replace 'HKEY_CLASSES_ROOT', 'HKCR:'}
+            #'^HKEY_CLASSES_ROOT' {$_ -replace 'HKEY_CLASSES_ROOT', 'HKCR:'}
             '^HKEY_CURRENT_USER' {$_ -replace 'HKEY_CURRENT_USER', 'HKCU:'}
             '^HKEY_LOCAL_MACHINE' {$_ -replace 'HKEY_LOCAL_MACHINE', 'HKLM:'}
-            '^HKEY_USERS' {$_ -replace 'HKEY_USERS', 'HKU:'}
-            '^HKEY_CURRENT_CONFIG' {$_ -replace 'HKEY_CURRENT_CONFIG', 'HKCC:'}
+            #'^HKEY_USERS' {$_ -replace 'HKEY_USERS', 'HKU:'}
+            #'^HKEY_CURRENT_CONFIG' {$_ -replace 'HKEY_CURRENT_CONFIG', 'HKCC:'}
         }
 
+        if ($regKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
+            Write-Host "$regKeyName`nAdmin access required." -ForegroundColor Red
+            return $false
+        }
+       
         if ($regBackup) {
             # Create an array to store reg keys that we've already backed up
             $backedUpKeys = @()
             $backupFriendlyRegKeyName = $regKeyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
+
+            $backupParams = @{
+                backupKeyName = $preSwitchedRegKeyName
+                backupFileName = $backupFriendlyRegKeyName
+                backupPath = $regBackupPath
+            }
         }
 
         # Handle special cases where the data needs to be formatted from the
@@ -116,16 +130,22 @@ Function Set-RegValueData {
                 if ($valueDiff) {
 
                     if ($regBackup -and $regKeyName -notin $backedUpKeys) {
-                        Export-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
+                        
+                        $exportKeys = Export-RegBackup @backupParams
+                        
+                        if (!$exportKeys) {
+                            return $false
+                        }
+
                         $backedUpKeys += $regKeyName
                     }
 
                     try {
-                        Set-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction SilentlyContinue
+                        Set-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction Stop
                         return $true
                     }
                     catch{
-                        Write-Host "$regKeyName`n$regValueName`Failed to set reg value" -ForegroundColor Red
+                        Write-Host "$regKeyName`n$regValueName`Failed to set reg value"
                         return $false
                     }
                 }
@@ -138,12 +158,18 @@ Function Set-RegValueData {
                     # Check whether we need to backup the registry key
                     # and do so if necessary
                     if ($regBackup -and $regKeyName -notin $backedUpKeys) {
-                        Export-RegBackup -backupKeyName $preSwitchedRegKeyName -backupFilename $backupFriendlyRegKeyName -backupPath $regBackupPath
+
+                        $exportKeys = Export-RegBackup @backupParams
+                        
+                        if (!$exportKeys) {
+                            return $false
+                        }
+
                         $backedUpKeys += $regKeyName
                     }
 
                     try {
-                        New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction SilentlyContinue | Out-Null
+                        New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction Stop | Out-Null
                         return $true
                     }
                     catch {
@@ -156,8 +182,9 @@ Function Set-RegValueData {
         # Create the path and then try to create a new item property
         else {
             try {
-                New-Item -Path $regKeyName -ErrorAction SilentlyContinue | Out-Null
-                return $true
+                # Be careful worth New-Item -Force
+                # Always verify the directory does not exist beforehand
+                New-Item -Path $regKeyName -Force -ErrorAction Stop | Out-Null
             }
             catch {
                 Write-Host "$regKeyName`nFailed to create reg key" -ForegroundColor Red
@@ -165,30 +192,37 @@ Function Set-RegValueData {
             }
 
             try {
-                New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction SilentlyContinue | Out-Null
-                return $true
+                New-ItemProperty -Path $regKeyName -Name $regValueName -Type $regType -Value $regValueData -ErrorAction Stop | Out-Null
             }
             catch {
                 Write-Host "$regKeyName`n$RegValueName`nFailed to create reg value" -ForegroundColor Red
                 return $false
             }
+
+            return $true
         }
 }
+
+Function Test-IsAdmin {
+    if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
+            GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+            return $true
+        }
+        else {
+            return $false
+        }
+}
+
 
 # Check for Windows 11
 if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
     throw "Windows 11 is required for this script to run."
 }
 
+
 # Check for Administrator
 # and exit if necessary
-if (!([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
-        GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host 'Administrator privileges are required to change the state of IPv6.' -ForegroundColor Red
-    Write-Host 'Please re-run the script as Administrator' -ForegroundColor Red
-    Start-Sleep -Seconds 5
-    Exit 1
-}
+$userIsAdmin = Test-IsAdmin
 
 # Check for whether to enable backups or not
 # Disable if running in Windows Sandbox as read-only access and... it's a sandbox
@@ -255,12 +289,12 @@ foreach ($category in $registryJSON.PSObject.Properties.Name) {
                     $regParams['regBackup'] = $true
                     $regParams['regBackupPath'] = $scriptRunBackupDir
                 }
+                
+                $setResult = Set-RegValueData @regParams
 
-                $setOrUpdateReg = Set-RegValueData @regParams
-
-                if ($setOrUpdateReg) {
+                if ($setResult) {
                     $successfulTweaks++
-                }
+                }       
             }
         }
     }
@@ -291,76 +325,99 @@ if ($powerSchemes) {
         powercfg /setactive $desiredSchemeGUID
     }
 
-    if ($(powercfg /getactivescheme) -match 'High performance')
+    if ($LASTEXITCODE -eq 0)
     {
         Write-Host "High performance profile active" -ForegroundColor Green
     }
 }
 
-# Enable RDP
+# Admin related tasks
 
-Write-Host 'Enabling RDP firewall rules...'
+if ($userIsAdmin) {
 
-try {
-    Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    Write-Host "Firewall rules enabled" -ForegroundColor Green
-}
-catch {
-    Write-Host "Failed to activate firewall rules" -ForegroundColor Red
-}
+    # Enable RDP Firewall rules
 
-# Remove Public Desktop shortcuts
+    Write-Host 'Enabling RDP firewall rules...'
 
-Write-Host 'Removing specified Public Desktop shortcuts...'
+    try {
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Write-Host "Firewall rules enabled" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Failed to activate firewall rules" -ForegroundColor Red
+    }
 
-$publicDesktopShortcuts = @(
-    'C:\Users\Public\Desktop\Microsoft Edge.lnk'
-)
+    # Remove Public Desktop shortcuts
 
-$publicDesktopShortcutsFound = $false
+    Write-Host 'Removing specified Public Desktop shortcuts...'
 
-foreach ($shortcut in $publicDesktopShortcuts) {
+    $publicDesktopShortcuts = @(
+        'C:\Users\Public\Desktop\Microsoft Edge.lnk'
+    )
 
-    if (Test-Path $shortcut) {
-        $publicDesktopShortcutsFound = $true
-        try {
-            Remove-item $shortcut
-            Write-Host "$shortcut`nRemoved" -ForegroundColor Green
+    $publicDesktopShortcutsFound = $false
+
+    foreach ($shortcut in $publicDesktopShortcuts) {
+
+        if (Test-Path $shortcut) {
+            $publicDesktopShortcutsFound = $true
+            try {
+                Remove-item $shortcut
+                Write-Host "$shortcut`nRemoved" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "$shortcut`nFailed to remove" -ForegroundColor Red
+            }
         }
-        catch {
-            Write-Host "$shortcut`nFailed to remove" -ForegroundColor Red
-        }
+    }
+
+    if(!$publicDesktopShortcutsFound) {
+        Write-Host 'No shortcuts require removal' -ForegroundColor Green
     }
 }
 
-if(!$publicDesktopShortcutsFound) {
-    Write-Host 'No shortcuts require removal' -ForegroundColor Green
-}
 
 # Uninstall OneDrive
 
-Write-Host 'Uninstalling OneDrive (if installed)...'
+Write-Host 'Checking for OneDrive...'
 
-taskkill /f /im OneDrive.exe 2> $null
+$oneDriveProcessName = 'OneDrive.exe'
+$oneDriveUserPath = "$env:LOCALAPPDATA\Microsoft\OneDrive\*\OneDriveSetup.exe"
+$oneDriveSystemPaths = @(
+    "$env:systemroot\System32\OneDriveSetup.exe", 
+    "$env:systemroot\SysWOW64\OneDriveSetup.exe"
+)
 
-# %localappdata installer
-if (Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\*\OneDriveSetup.exe") {
-    $pathLocalOD = Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\OneDrive\" `
-                                 -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
-    if ($pathLocalOD) {
-        & $pathLocalOD.FullName /uninstall
+$oneDriveProcessObject = Get-Process $oneDriveProcessName -ErrorAction SilentlyContinue
+
+if ($oneDriveProcessObject) {
+    Write-Host "OneDrive process was found" -ForegroundColor Yellow
+    taskkill /f /im OneDrive.exe 2>&1 > $null
+}
+
+if ($userIsAdmin) {
+
+    foreach ($uninstallPath in $oneDriveSystemPaths) {
+        if (Test-Path $uninstallPath) {
+            Write-Host 'Uninstalling OneDrive:`n$uninstallPath'
+            & $uninstallPath /uninstall /allusers
+        }
+    }
+}
+# This will still require elevation
+else {
+   
+    # %localappdata installer
+    if (Test-Path $oneDriveUserPath) {
+        $oneDriveUserPath = Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\OneDrive\" `
+                                    -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
+        if ($oneDriveUserPath) {
+            & $oneDriveUserPath.FullName /uninstall
+        }
     }
 }
 
-# 32-bit uninstaller
-if (Test-Path "$env:systemroot\System32\OneDriveSetup.exe") {
-    & "$env:systemroot\System32\OneDriveSetup.exe" /uninstall /allusers
-}
-
-#64-bit uninstaller
-if(Test-Path "$env:systemroot\SysWOW64\OneDriveSetup.exe") {
-    & "$env:systemroot\SysWOW64\OneDriveSetup.exe" /uninstall /allusers
-}
+#>
 
 #"Refresh" the desktop etc. with direct call to RUNDLL32
  Start-Process "RUNDLL32.EXE" -ArgumentList "USER32.DLL,UpdatePerUserSystemParameters ,1 ,True" -PassThru | Wait-Process

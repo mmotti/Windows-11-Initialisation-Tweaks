@@ -265,7 +265,7 @@ if ($registryJSON) {
     
         foreach ($tweak in $tweaks) {
     
-            $requiredProperties = @('Active', 'Action', 'RegPath', 'Name', 'Type', 'Value')
+            $requiredProperties = @('Action', 'RegPath', 'Name', 'Type', 'Value')
     
             if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
                 continue

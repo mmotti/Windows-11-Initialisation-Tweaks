@@ -375,7 +375,7 @@ if ($userIsAdmin) {
 Write-Host 'Checking for OneDrive...'
 
 $oneDriveProcessName = 'OneDrive.exe'
-$oneDriveUserPath = "$env:LOCALAPPDATA\Microsoft\OneDrive\*\OneDriveSetup.exe"
+$oneDriveUserPath = "$($env:LOCALAPPDATA)\Microsoft\OneDrive\*\OneDriveSetup.exe"
 $oneDriveSystemPaths = @(
     "$env:systemroot\System32\OneDriveSetup.exe",
     "$env:systemroot\SysWOW64\OneDriveSetup.exe"

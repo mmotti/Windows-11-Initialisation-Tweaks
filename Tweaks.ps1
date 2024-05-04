@@ -16,7 +16,6 @@ Class RegistryKey {
     [bool] addToReg() {
 
         $arrBackedUpKeys = @()
-        $preSwitchedRegKeyName = $this.keyName
 
         # Powershell requires altering the reg key prefix
          $psFriendlyKeyName = switch -Regex ($this.keyName) {

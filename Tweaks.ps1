@@ -51,7 +51,7 @@ Class RegistryKey {
                 $valueDiff = $false
                 $existingRegValueType = $itemPropertyObject.$($this.valueName).GetType().Name
 
-                $strExistingRegType = switch ($existingRegValueType) {
+                $existingRegValueType = switch ($existingRegValueType) {
                     'String' {'STRING'}
                     'Int32' {'DWORD'}
                     'Int64' {'QWORD'}
@@ -61,7 +61,7 @@ Class RegistryKey {
                 }
 
                 # Reg value exists but key types are different
-                if ($strExistingRegType -ne $this.type) {
+                if ($existingRegValueType -ne $this.type) {
                     $valueDiff = $true
                 }
                 # Reg value exists and key types are the same

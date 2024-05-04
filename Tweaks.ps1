@@ -259,7 +259,7 @@ if ($registryJSON) {
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
         Write-Host ("Applying registry tweaks for $category")
-        $tweaks = $registryJSON.$category | Where-Object {$_.Active.ToUpper() -eq 'TRUE'}
+        $tweaks = $registryJSON.$category | Where-Object {$_.IsEnabled.ToUpper() -eq 'TRUE'}
         $tweakCount = $tweaks.Count
         $successfulTweaks = 0
     

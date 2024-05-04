@@ -180,7 +180,6 @@ Class RegistryKey {
         $backupFriendlyFileName = $this.keyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
         
         $arrFileName = $backupFriendlyFileName -split '-'
-        
 
         if ($arrFileName.Count -ge 4) {
             $backupFriendlyFileName = "$($arrFileName[0])-$($arrFileName[1])...$($arrFileName[-2])-$($arrFileName[-1]).reg"
@@ -260,7 +259,7 @@ if ($registryJSON) {
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
         Write-Host ("Applying registry tweaks for $category")
-        $tweaks = $registryJSON.$category | Where-Object {$_.Active -eq 'true'}
+        $tweaks = $registryJSON.$category | Where-Object {$_.Active.ToUpper() -eq 'TRUE'}
         $tweakCount = $tweaks.Count
         $successfulTweaks = 0
     
@@ -272,21 +271,18 @@ if ($registryJSON) {
                 continue
             }
     
-            if ($tweak.Active.ToUpper() -eq 'TRUE') {
-    
-                if ($tweak.Action.ToUpper() -eq 'ADD') {
-    
-                    $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
-    
-                    if ($backupsEnabled) {
-                        $regKeyObject.backupDirectory = $scriptRunBackupDir
-                    }
-    
-                    $setResult = $regKeyObject.addToReg()
-    
-                    if ($setResult) {
-                        $successfulTweaks++
-                    }
+            if ($tweak.Action.ToUpper() -eq 'ADD') {
+
+                $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
+
+                if ($backupsEnabled) {
+                    $regKeyObject.backupDirectory = $scriptRunBackupDir
+                }
+
+                $setResult = $regKeyObject.addToReg()
+
+                if ($setResult) {
+                    $successfulTweaks++
                 }
             }
         }

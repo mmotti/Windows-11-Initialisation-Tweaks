@@ -1,7 +1,7 @@
 {
 	"Desktop Icons": [
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\ClassicStartMenu",
 			"Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
@@ -10,7 +10,7 @@
 			"Notes": "Show \"This PC\" on the desktop"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\HideDesktopIcons\\NewStartPanel",
 			"Name": "{20D04FE0-3AEA-1069-A2D8-08002B30309D}",
@@ -19,7 +19,7 @@
 			"Notes": "Show \"This PC\" on the desktop"
 		},
 		{
-			"Active": "false",
+			"IsEnabled": "false",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop",
 			"Name": "IconLayouts",
@@ -30,7 +30,7 @@
 	],
 	"File Explorer": [
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "Hidden",
@@ -39,7 +39,7 @@
 			"Notes": "Show hidden files"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "HideFileExt",
@@ -48,7 +48,7 @@
 			"Notes": "Show extensions for known file types"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "LaunchTo",
@@ -57,7 +57,7 @@
 			"Notes": "Launch to This PC"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "ShowSyncProviderNotifications",
@@ -68,7 +68,7 @@
 	],
 	"Privacy / Annoyances": [
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\Explorer",
 			"Name": "DisableSearchBoxSuggestions",
@@ -77,7 +77,7 @@
 			"Notes": "Disable online search suggestions"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
 			"Name": "Enabled",
@@ -86,7 +86,7 @@
 			"Notes": "Disable 'Let apps show me personalised ads by using my advertising ID"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-338387Enabled",
@@ -95,7 +95,7 @@
 			"Notes": "Disable 'Get fun facts, tips, tricks and more on your lock screen"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-338389Enabled",
@@ -104,7 +104,7 @@
 			"Notes": "Disable notifications 'Get tips and suggestions when using Windows"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-338393Enabled",
@@ -113,7 +113,7 @@
 			"Notes": "Disable 'Show me suggested settings content in the Settings app'"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-353694Enabled",
@@ -122,7 +122,7 @@
 			"Notes": "Disable 'Show me suggested settings content in the Settings app'"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-353696Enabled",
@@ -131,7 +131,7 @@
 			"Notes": "Disable 'Show me suggested settings content in the Settings app'"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-310093Enabled",
@@ -140,7 +140,7 @@
 			"Notes": "Disable 'Show me Windows welcome experience after updates and when signed in to show what's new and suggested'"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
 			"Name": "ScoobeSystemSettingEnabled",
@@ -149,7 +149,7 @@
 			"Notes": "Disable 'Suggest ways to get the most out of Windows and finish setting up this device'"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Privacy",
 			"Name": "TailoredExperiencesWithDiagnosticDataEnabled",
@@ -158,7 +158,7 @@
 			"Notes": "Disable 'Tailored experiences'"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "Start_IrisRecommendations",
@@ -169,7 +169,7 @@
 	],
 	"Remote Desktop": [
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Terminal Server",
 			"Name": "fDenyTSConnections",
@@ -178,7 +178,7 @@
 			"Notes": "Enable RDP"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Terminal Server",
 			"Name": "updateRDStatus",
@@ -189,7 +189,7 @@
 	],
 	"Taskbar": [
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
 			"Name": "SearchboxTaskbarMode",
@@ -198,7 +198,7 @@
 			"Notes": "Hide the Search button"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "ShowCopilotButton",
@@ -207,7 +207,7 @@
 			"Notes": "Hide the Copilot button"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "TaskbarDa",
@@ -216,7 +216,7 @@
 			"Notes": "Hide the Widget button"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "TaskbarAl",
@@ -227,7 +227,7 @@
 	],
 	"Windows Theme": [
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
 			"Name": "CurrentTheme",
@@ -236,7 +236,7 @@
 			"Notes": "Set the active theme to Windows(dark)"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\HighContrast",
 			"Name": "Pre-High Contrast Scheme",
@@ -245,7 +245,7 @@
 			"Notes": "Set the active theme to Windows(dark)"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
 			"Name": "AppsUseLightTheme",
@@ -254,7 +254,7 @@
 			"Notes": "Set the active theme to Windows(dark)"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
 			"Name": "SystemUsesLightTheme",
@@ -263,7 +263,7 @@
 			"Notes": "Set the active theme to Windows(dark)"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
 			"Name": "ThemeMRU",
@@ -272,7 +272,7 @@
 			"Notes": "Set the active theme to Windows(dark)"
 		},
 		{
-			"Active": "true",
+			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Control Panel\\Desktop",
 			"Name": "WallPaper",

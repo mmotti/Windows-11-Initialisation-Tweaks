@@ -319,6 +319,9 @@ if ($powerSchemes) {
     {
         Write-Host "High performance profile active" -ForegroundColor Green
     }
+    else {
+        write-Host "Failed to set High Performance power plan" -ForegroundColor Red
+    }
 }
 
 # Admin related tasks

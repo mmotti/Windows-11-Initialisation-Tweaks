@@ -114,8 +114,6 @@ Class RegistryKey {
             }
             # Path exists but key doesn't
             else {
-                    # Check whether we need to backup the registry key
-                    # and do so if necessary
                     if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
 
                         $exportKeys = $this.backupRegKey()
@@ -143,6 +141,7 @@ Class RegistryKey {
             try {
                 # Be careful worth New-Item -Force
                 # Always verify the directory does not exist beforehand
+                # -Force will re-create the destination key and remove all existing subkeys from it
                 New-Item -Path $psFriendlyKeyName -Force -ErrorAction Stop | Out-Null
             }
             catch {
@@ -173,6 +172,10 @@ Class RegistryKey {
             Write-Error "The specified backup directory does not exist."
             return  $false
         }
+
+        # It may have been sensible to include a Test-Path for the
+        # reg key here however we have already checked this in the
+        # other method and reg export will fail anyway if invalid
 
         $backupFriendlyFileName = $this.keyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
         

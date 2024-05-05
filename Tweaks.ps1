@@ -4,7 +4,7 @@ Class RegistryKey {
     [string] $type
     [string] $valueData
     [string] $backupDirectory
-    
+
     RegistryKey ([string]$keyName, [string]$valueName, [string]$type, [string]$valueData, [string]$backupDirectory) {
         $this.keyName = $keyName
         $this.valueName = $valueName
@@ -22,7 +22,7 @@ Class RegistryKey {
             '^(HKEY_CURRENT_USER)' {$_ -replace $Matches[1], 'HKCU:'}
             '^(HKEY_LOCAL_MACHINE)' {$_ -replace $Matches[1], 'HKLM:'}
         }
-     
+
         # Handle special cases where the data needs to be formatted from the
         # input Json string
         $this.valueData = switch ($this.type) {
@@ -79,12 +79,12 @@ Class RegistryKey {
                 # Backups will currently made if we're changing existing reg key values OR
                 # if we're creating new values in a path that pre-exists
                 if ($valueDiff) {
-                
+
                     if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
                         Write-Host "Admin access required: $($psFriendlyKeyName)" -ForegroundColor Yellow
                         return $false
                     }
-                    
+
                     if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
 
                         $exportKeys = $this.backupRegKey()
@@ -159,7 +159,7 @@ Class RegistryKey {
     }
 
     [bool] backupRegKey() {
-        
+
         if ($null -eq $this.backupDirectory) {
             Write-Error "You did not specify a backup directory."
             return $false
@@ -175,7 +175,7 @@ Class RegistryKey {
         # other method and reg export will fail anyway if invalid
 
         $backupFriendlyFileName = $this.keyName -replace '^([A-Z]{3,4}):\\|\\', '$1-'
-        
+
         $arrFileName = $backupFriendlyFileName -split '-'
 
         if ($arrFileName.Count -ge 4) {
@@ -259,15 +259,15 @@ if ($registryJSON) {
         $tweaks = $registryJSON.$category | Where-Object {$_.IsEnabled.ToUpper() -eq 'TRUE'}
         $tweakCount = $tweaks.Count
         $successfulTweaks = 0
-    
+
         foreach ($tweak in $tweaks) {
-    
+
             $requiredProperties = @('Action', 'RegPath', 'Name', 'Type', 'Value')
-    
+
             if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
                 continue
             }
-    
+
             if ($tweak.Action.ToUpper() -eq 'ADD') {
 
                 $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
@@ -289,7 +289,7 @@ if ($registryJSON) {
             {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
             {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied', 'Green'}
         }
-        
+
         Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]
     }
 }

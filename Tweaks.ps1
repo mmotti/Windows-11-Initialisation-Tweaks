@@ -375,10 +375,10 @@ if ($userIsAdmin) {
 Write-Host 'Checking for OneDrive...'
 
 $oneDriveProcessName = 'OneDrive.exe'
-$oneDriveUserPath = "$($env:LOCALAPPDATA)\Microsoft\OneDrive\*\OneDriveSetup.exe"
+$oneDriveUserPath = "${env:LOCALAPPDATA}\Microsoft\OneDrive\*\OneDriveSetup.exe"
 $oneDriveSystemPaths = @(
-    "$env:systemroot\System32\OneDriveSetup.exe",
-    "$env:systemroot\SysWOW64\OneDriveSetup.exe"
+    "${env:systemroot}\System32\OneDriveSetup.exe",
+    "${env:systemroot}\SysWOW64\OneDriveSetup.exe"
 )
 
 $oneDriveProcessObject = Get-Process $oneDriveProcessName -ErrorAction SilentlyContinue
@@ -401,7 +401,7 @@ if ($userIsAdmin) {
 # %localappdata% installer
 # I've come across it installed here too previously
 if (Test-Path $oneDriveUserPath) {
-    $oneDriveUserPath = Get-ChildItem -Path "$($env:LOCALAPPDATA)\Microsoft\OneDrive\" `
+    $oneDriveUserPath = Get-ChildItem -Path "${env:LOCALAPPDATA})\Microsoft\OneDrive\" `
                                 -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
     if ($oneDriveUserPath) {
         Write-Host "Uninstalling OneDrive:`n$oneDriveUserPath /uninstall"

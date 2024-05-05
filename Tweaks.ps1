@@ -25,11 +25,6 @@ Class RegistryKey {
             #'^HKEY_USERS' {$_ -replace 'HKEY_USERS', 'HKU:'}
             #'^HKEY_CURRENT_CONFIG' {$_ -replace 'HKEY_CURRENT_CONFIG', 'HKCC:'}
         }
-
-        if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
-            Write-Host "$($psFriendlyKeyName)`nAdmin access required." -ForegroundColor Yellow
-            return $false
-        }
      
         # Handle special cases where the data needs to be formatted from the
         # input Json string
@@ -88,6 +83,11 @@ Class RegistryKey {
                 # if we're creating new values in a path that pre-exists
                 if ($valueDiff) {
                 
+                    if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
+                        Write-Host "$($psFriendlyKeyName)`nAdmin access required." -ForegroundColor Yellow
+                        return $false
+                    }
+                    
                     if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
 
                         $exportKeys = $this.backupRegKey()

@@ -81,7 +81,7 @@ Class RegistryKey {
                 if ($valueDiff) {
                 
                     if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
-                        Write-Host "$($psFriendlyKeyName)`nAdmin access required." -ForegroundColor Yellow
+                        Write-Host "Admin access required: $($psFriendlyKeyName)" -ForegroundColor Yellow
                         return $false
                     }
                     
@@ -255,7 +255,7 @@ if ($registryJSON) {
 
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
-        Write-Host ("Applying registry tweaks for $category")
+        Write-Host ("Applying registry tweaks for ${category}:")
         $tweaks = $registryJSON.$category | Where-Object {$_.IsEnabled.ToUpper() -eq 'TRUE'}
         $tweakCount = $tweaks.Count
         $successfulTweaks = 0
@@ -283,15 +283,14 @@ if ($registryJSON) {
                 }
             }
         }
-    
-        $foregroundColour = switch ($successfulTweaks) {
-            {$successfulTweaks -eq 0} {'Red'}
-            {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {'Yellow'}
-            {$successfulTweaks -eq $tweakCount} {'Green'}
-            default {'White'}
+
+        $resultOutput = switch ($successfulTweaks) {
+            0 {'All tweaks were skipped or failed to apply.', 'Red'}
+            {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
+            {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied', 'Green'}
         }
-    
-        Write-Host "$successfulTweaks/$tweakCount successful tweaks successful" -ForegroundColor $foregroundColour
+        
+        Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]
     }
 }
 
@@ -389,8 +388,8 @@ if ($userIsAdmin) {
 
     foreach ($uninstallPath in $oneDriveSystemPaths) {
         if (Test-Path $uninstallPath) {
-            Write-Host "OneDrive Found:`n$uninstallPath" -ForegroundColor Yellow
-            & $uninstallPath /uninstall /allusers
+            Write-Host "OneDrive Found: $uninstallPath" -ForegroundColor Yellow
+            Start-Process $uninstallPath -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
         }
     }
 }
@@ -401,8 +400,8 @@ if (Test-Path $oneDriveUserPath) {
     $oneDriveUserPath = Get-ChildItem -Path "${env:LOCALAPPDATA})\Microsoft\OneDrive\" `
                                 -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
     if ($oneDriveUserPath) {
-        Write-Host "OneDrive Found:`n$oneDriveUserPath" -ForegroundColor Yellow
-        & $oneDriveUserPath.FullName /uninstall
+        Write-Host "OneDrive Found: $oneDriveUserPath" -ForegroundColor Yellow
+        Start-Process $oneDriveUserPath.FullName -ArgumentList '/uninstall' -PassThru | Wait-Process
     }
 }
 

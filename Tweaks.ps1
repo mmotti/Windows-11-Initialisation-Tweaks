@@ -400,7 +400,7 @@ if ($userIsAdmin) {
 # This will still require elevation
 else {
 
-    # %localappdata installer
+    # %localappdata% installer
     if (Test-Path $oneDriveUserPath) {
         $oneDriveUserPath = Get-ChildItem -Path "$($env:LOCALAPPDATA)\Microsoft\OneDrive\" `
                                     -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
@@ -412,7 +412,7 @@ else {
 
 #>
 
-#"Refresh" the desktop etc. with direct call to RUNDLL32
+# "Refresh" the desktop etc. with direct call to RUNDLL32
  Start-Process "RUNDLL32.EXE" -ArgumentList "USER32.DLL,UpdatePerUserSystemParameters ,1 ,True" -PassThru | Wait-Process
  Stop-Process -Name explorer -PassThru | Wait-Process
 

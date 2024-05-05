@@ -201,15 +201,6 @@
 			"Type": "DWORD",
 			"Value": 1,
 			"Notes": "Disable 'Send optional diagnostic data"
-		},
-		{
-			"IsEnabled": "true",
-			"Action": "ADD",
-			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Spynet",
-			"Name": "SubmitSamplesConsent",
-			"Type": "DWORD",
-			"Value": 0,
-			"Notes": "Disable 'Automatic Sample Submission'"
 		}
 	],
 	"Remote Desktop": [

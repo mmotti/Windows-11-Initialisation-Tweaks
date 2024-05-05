@@ -20,8 +20,8 @@ Class RegistryKey {
         # Powershell requires altering the reg key prefix
          $psFriendlyKeyName = switch -Regex ($this.keyName) {
             #'^HKEY_CLASSES_ROOT' {$_ -replace 'HKEY_CLASSES_ROOT', 'HKCR:'}
-            '^HKEY_CURRENT_USER' {$_ -replace 'HKEY_CURRENT_USER', 'HKCU:'}
-            '^HKEY_LOCAL_MACHINE' {$_ -replace 'HKEY_LOCAL_MACHINE', 'HKLM:'}
+            '^(HKEY_CURRENT_USER)' {$_ -replace $Matches[1], 'HKCU:'}
+            '^(HKEY_LOCAL_MACHINE)' {$_ -replace $Matches[1], 'HKLM:'}
             #'^HKEY_USERS' {$_ -replace 'HKEY_USERS', 'HKU:'}
             #'^HKEY_CURRENT_CONFIG' {$_ -replace 'HKEY_CURRENT_CONFIG', 'HKCC:'}
         }

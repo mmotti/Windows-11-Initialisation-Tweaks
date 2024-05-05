@@ -392,7 +392,7 @@ if ($userIsAdmin) {
 
     foreach ($uninstallPath in $oneDriveSystemPaths) {
         if (Test-Path $uninstallPath) {
-            Write-Host 'Uninstalling OneDrive:`n$uninstallPath'
+            Write-Host "Uninstalling OneDrive:`n$uninstallPath /uninstall /allusers"
             & $uninstallPath /uninstall /allusers
         }
     }
@@ -405,6 +405,7 @@ else {
         $oneDriveUserPath = Get-ChildItem -Path "$($env:LOCALAPPDATA)\Microsoft\OneDrive\" `
                                     -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
         if ($oneDriveUserPath) {
+            Write-Host "Uninstalling OneDrive:`n$oneDriveUserPath /uninstall"
             & $oneDriveUserPath.FullName /uninstall
         }
     }

@@ -104,7 +104,7 @@ Class RegistryKey {
                         return $true
                     }
                     catch{
-                        Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`Failed to set reg value"
+                        Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`nFailed to set reg value"
                         return $false
                     }
                 }

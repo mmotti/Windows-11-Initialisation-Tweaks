@@ -200,7 +200,16 @@
 			"Name": "ShowedToastAtLevel",
 			"Type": "DWORD",
 			"Value": 1,
-			"Notes": "Disable 'Send optional diagnostic data"
+			"Notes": "Disable 'Send optional diagnostic data'"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings\\Windows.SystemToast.Suggested",
+			"Name": "Enabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Windows toast suggestions (notifications)'"
 		}
 	],
 	"Remote Desktop": [

@@ -299,6 +299,8 @@ if ($registryJSON) {
 
 # Refresh after the changes have been made
 Write-Host 'Starting Windows Explorer process...'
+Start-Process "RUNDLL32.EXE" -ArgumentList "USER32.DLL,UpdatePerUserSystemParameters ,1 ,True" -PassThru | Wait-Process
+Start-Sleep -Seconds 2.5
 Start-Process explorer.exe
 
 # Set the High Performance power plan

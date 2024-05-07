@@ -253,6 +253,9 @@ $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | 
 
 if ($registryJSON) {
 
+    Write-Host 'Terminating Windows Explorer process...'
+    taskkill /f /im explorer.exe 2>&1> $null
+
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
         Write-Host ("Applying registry tweaks for ${category}:")
@@ -294,6 +297,9 @@ if ($registryJSON) {
     }
 }
 
+# Refresh after the changes have been made
+Write-Host 'Starting Windows Explorer process...'
+Start-Process explorer.exe
 
 # Set the High Performance power plan
 
@@ -406,10 +412,6 @@ if (Test-Path $oneDriveUserPath) {
 }
 
 #>
-
-# "Refresh" the desktop etc. with direct call to RUNDLL32
- Start-Process "RUNDLL32.EXE" -ArgumentList "USER32.DLL,UpdatePerUserSystemParameters ,1 ,True" -PassThru | Wait-Process
- Stop-Process -Name explorer -PassThru | Wait-Process
 
  # Remove backup directory if no changes were made
  if ($backupsEnabled) {

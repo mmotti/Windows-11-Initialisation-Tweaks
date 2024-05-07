@@ -213,7 +213,7 @@ if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
 
 # Check for Administrator
 # and exit if necessary
-$userIsAdmin = Test-IsAdminElevated
+$userIsAdminElevated = Test-IsAdminElevated
 
 # Check for whether to enable backups or not
 # Disable if running in Windows Sandbox as read-only access and... it's a sandbox
@@ -328,7 +328,7 @@ if ($powerSchemes) {
 
 # Admin related tasks
 
-if ($userIsAdmin) {
+if ($userIsAdminElevated) {
 
     # Enable RDP Firewall rules
 
@@ -390,7 +390,7 @@ if ($oneDriveProcessObject) {
     taskkill /f /im OneDrive.exe 2>&1 > $null
 }
 
-if ($userIsAdmin) {
+if ($userIsAdminElevated) {
 
     foreach ($uninstallPath in $oneDriveSystemPaths) {
         if (Test-Path $uninstallPath) {

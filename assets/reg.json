@@ -24,7 +24,7 @@
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop",
 			"Name": "IconSize",
 			"Type": "DWORD",
-			"Value": "20",
+			"Value": "32",
 			"Notes": "Set View -> Small icons"
 		}
 	],

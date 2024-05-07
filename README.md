@@ -22,6 +22,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Desktop icons:**
     * Show "This PC" on the desktop.
+    * Set desktop icons to small
     * ~~Set the icon layout that I like (small icons & sort by item type).~~
 
 1. **File Explorer:**

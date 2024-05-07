@@ -80,7 +80,7 @@ Class RegistryKey {
                 # if we're creating new values in a path that pre-exists
                 if ($valueDiff) {
 
-                    if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdmin)) {
+                    if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdminElevated)) {
                         Write-Host "Admin access required: $($psFriendlyKeyName)" -ForegroundColor Yellow
                         return $false
                     }
@@ -194,7 +194,7 @@ Class RegistryKey {
     }
 }
 
-Function Test-IsAdmin {
+Function Test-IsAdminElevated {
     if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
             GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
             return $true
@@ -213,7 +213,7 @@ if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
 
 # Check for Administrator
 # and exit if necessary
-$userIsAdmin = Test-IsAdmin
+$userIsAdmin = Test-IsAdminElevated
 
 # Check for whether to enable backups or not
 # Disable if running in Windows Sandbox as read-only access and... it's a sandbox

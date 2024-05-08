@@ -199,6 +199,7 @@ Class RegistryKey {
                     if (!([string]::IsNullOrEmpty($this.type))) {
                         # Reg value exists but key types are different
                         if ($existingRegValueType -ne $this.type) {
+                            Write-Host "${psFriendlyKeyName}`nSkipped processing as the specified value type did not match the existing registry key." -ForegroundColor Yellow
                             return $false
                         }
                     }

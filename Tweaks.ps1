@@ -13,9 +13,9 @@ Class RegistryKey {
         $this.backupDirectory = $backupDirectory
     }
 
-    [bool] addToReg() {
+    $arrBackedUpKeys = @()
 
-        $arrBackedUpKeys = @()
+    [bool] addToReg() {
 
         # Powershell requires altering the reg key prefix
          $psFriendlyKeyName = switch -Regex ($this.keyName) {
@@ -80,12 +80,11 @@ Class RegistryKey {
                 # if we're creating new values in a path that pre-exists
                 if ($valueDiff) {
 
-                    if ($psFriendlyKeyName -notmatch '^HKCU' -and !(Test-IsAdminElevated)) {
-                        Write-Host "Admin access required: $($psFriendlyKeyName)" -ForegroundColor Yellow
+                    if (Test-IsAdminRequired -keyName $psFriendlyKeyName) {
                         return $false
                     }
 
-                    if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
+                    if ($this.backupDirectory -and $psFriendlyKeyName -notin $this.arrBackedUpKeys) {
 
                         $exportKeys = $this.backupRegKey()
 
@@ -93,7 +92,7 @@ Class RegistryKey {
                             return $false
                         }
 
-                        $arrBackedUpKeys += $psFriendlyKeyName
+                        $this.arrBackedUpKeys += $psFriendlyKeyName
                     }
 
                     try {
@@ -111,30 +110,40 @@ Class RegistryKey {
             }
             # Path exists but key doesn't
             else {
-                    if ($this.backupDirectory -and $psFriendlyKeyName -notin $arrBackedUpKeys) {
 
-                        $exportKeys = $this.backupRegKey()
+                if (Test-IsAdminRequired -keyName $psFriendlyKeyName) {
+                    return $false
+                }
 
-                        if (!$exportKeys) {
-                            return $false
-                        }
+                if ($this.backupDirectory -and $psFriendlyKeyName -notin $this.arrBackedUpKeys) {
 
-                        $arrBackedUpKeys += $psFriendlyKeyName
-                    }
+                    $exportKeys = $this.backupRegKey()
 
-                    try {
-                        New-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -Type $this.type -Value $this.valueData -ErrorAction Stop | Out-Null
-                        return $true
-                    }
-                    catch {
-                        Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`Failed to create reg value" -ForegroundColor Red
+                    if (!$exportKeys) {
                         return $false
                     }
+
+                    $this.arrBackedUpKeys += $psFriendlyKeyName
+                }
+
+                try {
+                    New-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -Type $this.type -Value $this.valueData -ErrorAction Stop | Out-Null
+                    return $true
+                }
+                catch {
+                    Write-Host "${psFriendlyKeyName}`n$($this.valueName)`Failed to create reg value" -ForegroundColor Red
+                    return $false
+                }
             }
         }
         # Path to key does not exist
         # Create the path and then try to create a new item property
         else {
+
+            if (Test-IsAdminRequired -keyName $psFriendlyKeyName) {
+                return $false
+            }
+
             try {
                 # Be careful worth New-Item -Force
                 # Always verify the directory does not exist beforehand
@@ -158,9 +167,107 @@ Class RegistryKey {
         }
     }
 
+    [bool] deleteFromReg() {
+
+         # Powershell requires altering the reg key prefix
+         $psFriendlyKeyName = switch -Regex ($this.keyName) {
+            '^(HKEY_CURRENT_USER)' {$_ -replace $Matches[1], 'HKCU:'}
+            '^(HKEY_LOCAL_MACHINE)' {$_ -replace $Matches[1], 'HKLM:'}
+        }
+
+        if (Test-Path $psFriendlyKeyName) {
+
+            # Deleting a key value
+            if (!([string]::IsNullOrEmpty($this.valueName))) {
+
+                $itemPropertyObject = Get-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -ErrorAction SilentlyContinue
+
+                # Key value exists
+                if ($null -ne $itemPropertyObject) {
+
+                    # Double check the key matches our target type
+                    $existingRegValueType = $itemPropertyObject.$($this.valueName).GetType().Name
+                    $existingRegValueType = switch ($existingRegValueType) {
+                        'String' {'STRING'}
+                        'Int32' {'DWORD'}
+                        'Int64' {'QWORD'}
+                        'Byte[]' {'BINARY'}
+                        'String[]' {'MULTISTRING'}
+                        Default {'UNKNOWN'}
+                    }
+
+                    # Reg value exists but key types are different
+                    if ($existingRegValueType -ne $this.type) {
+                        return $false
+                    }
+
+                    if (Test-IsAdminRequired -keyName $psFriendlyKeyName) {
+                        return $false
+                    }
+
+                    if ($this.backupDirectory -and $psFriendlyKeyName -notin $this.arrBackedUpKeys) {
+
+                        $exportKeys = $this.backupRegKey()
+
+                        if (!$exportKeys) {
+                            return $false
+                        }
+
+                        $this.arrBackedUpKeys += $psFriendlyKeyName
+                    }
+
+                    # Key value exists and matches our target type
+                    try {
+                        Remove-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName
+                        return $true
+                    }
+                    catch {
+                        Write-Host "${psFriendlyKeyName}`nFailed to delete key value" -ForegroundColor Red
+                        return $false
+                    }
+                }
+                # Key value does not exist
+                else {
+                    return $true
+                }
+            }
+            # Nothing was specified for a valuename so targeting
+            # key path
+            else {
+
+                if (Test-IsAdminRequired -keyName $psFriendlyKeyName) {
+                    return $false
+                }
+
+                if ($this.backupDirectory -and $psFriendlyKeyName -notin $this.arrBackedUpKeys) {
+
+                    $exportKeys = $this.backupRegKey()
+
+                    if (!$exportKeys) {
+                        return $false
+                    }
+
+                    $this.arrBackedUpKeys += $psFriendlyKeyName
+                }
+
+                try {
+                    Remove-Item -Path $psFriendlyKeyName
+                    return $true
+                }
+                catch {
+                    Write-Host "${psFriendlyKeyName}`nFailed to delete key" -ForegroundColor Red
+                    return $false
+                }
+            }
+        }
+        else {
+            return $true
+        }
+    }
+
     [bool] backupRegKey() {
 
-        if ($null -eq $this.backupDirectory) {
+        if ([string]::IsNullOrEmpty($this.backupDirectory)) {
             Write-Error "You did not specify a backup directory."
             return $false
         }
@@ -265,13 +372,18 @@ if ($registryJSON) {
 
         foreach ($tweak in $tweaks) {
 
-            $requiredProperties = @('Action', 'RegPath', 'Name', 'Type', 'Value')
-
-            if ($requiredProperties | Where-Object {$null -eq $tweak.$_}) {
+            # Check at least an action is set
+            if ([string]::IsNullOrEmpty($tweak.Action)) {
                 continue
             }
 
             if ($tweak.Action.ToUpper() -eq 'ADD') {
+
+                $requiredProperties = @('RegPath', 'Name', 'Type', 'Value')
+
+                if ($requiredProperties | Where-Object {[string]::IsNullOrEmpty($tweak.$_)}) {
+                    continue
+                }
 
                 $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
 
@@ -280,6 +392,28 @@ if ($registryJSON) {
                 }
 
                 $setResult = $regKeyObject.addToReg()
+
+                if ($setResult) {
+                    $successfulTweaks++
+                }
+            }
+            elseif($tweak.Action.ToUpper() -eq 'DEL') {
+
+                $requiredProperties = @('RegPath')
+
+                if ($requiredProperties | Where-Object {[string]::IsNullOrEmpty($tweak.$_)}) {
+                    continue
+                }
+
+                $tweakType = if (!([string]::IsNullOrEmpty($tweak.Type))) { $tweak.Type.ToUpper() } else { $null }
+
+                $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweakType, $null, $null)
+
+                if ($backupsEnabled) {
+                    $regKeyObject.backupDirectory = $scriptRunBackupDir
+                }
+
+                $setResult = $regKeyObject.deleteFromReg()
 
                 if ($setResult) {
                     $successfulTweaks++

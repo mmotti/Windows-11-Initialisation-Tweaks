@@ -100,7 +100,7 @@ Class RegistryKey {
                         return $true
                     }
                     catch{
-                        Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`nFailed to set reg value"
+                        Write-Host "${psFriendlyKeyName}`n$($this.valueName)`nFailed to set reg value"
                         return $false
                     }
                 }
@@ -151,7 +151,7 @@ Class RegistryKey {
                 New-Item -Path $psFriendlyKeyName -Force -ErrorAction Stop | Out-Null
             }
             catch {
-                Write-Host "$($psFriendlyKeyName)`nFailed to create reg key" -ForegroundColor Red
+                Write-Host "${psFriendlyKeyName}`nFailed to create reg key" -ForegroundColor Red
                 return $false
             }
 
@@ -159,7 +159,7 @@ Class RegistryKey {
                 New-ItemProperty -Path $psFriendlyKeyName -Name $this.valueName -Type $this.type -Value $this.valueData -ErrorAction Stop | Out-Null
             }
             catch {
-                Write-Host "$($psFriendlyKeyName)`n$($this.valueName)`nFailed to create reg value" -ForegroundColor Red
+                Write-Host "${psFriendlyKeyName}`n$($this.valueName)`nFailed to create reg value" -ForegroundColor Red
                 return $false
             }
 

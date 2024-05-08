@@ -196,9 +196,11 @@ Class RegistryKey {
                         Default {'UNKNOWN'}
                     }
 
-                    # Reg value exists but key types are different
-                    if ($existingRegValueType -ne $this.type) {
-                        return $false
+                    if (!([string]::IsNullOrEmpty($this.type))) {
+                        # Reg value exists but key types are different
+                        if ($existingRegValueType -ne $this.type) {
+                            return $false
+                        }
                     }
 
                     if (Test-IsAdminRequired -keyName $psFriendlyKeyName) {

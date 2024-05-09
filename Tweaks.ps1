@@ -10,6 +10,19 @@ Function Test-IsAdminElevated {
         }
 }
 
+Function Test-IsAdminRequired {
+    param (
+        [Parameter(Mandatory=$true)]
+        $keyName
+    )
+
+    if ($keyName -notmatch '^HKCU' -and !(Test-IsAdminElevated)) {
+        Write-Host "Admin access required: ${keyName}" -ForegroundColor Yellow
+        return $true
+    }
+
+    return $false
+}
 
 # Check for Windows 11
 if ([System.Environment]::OSVersion.Version.Build -lt 22000) {

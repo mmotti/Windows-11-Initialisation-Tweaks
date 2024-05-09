@@ -59,9 +59,9 @@ $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | 
 
 if ($registryJSON) {
 
-    Write-Host 'Terminating Windows Explorer process...'
+    Write-Host 'Killing Windows Explorer...'
     taskkill /f /im explorer.exe 2>&1> $null
-
+    
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
         Write-Host ("Applying registry tweaks for ${category}:")
@@ -76,7 +76,9 @@ if ($registryJSON) {
                 continue
             }
 
-            if ($tweak.Action.ToUpper() -eq 'ADD') {
+            $tweakAction = $tweak.Action.ToUpper()
+
+            if ($tweakAction -eq 'ADD') {
 
                 $requiredProperties = @('RegPath', 'Name', 'Type', 'Value')
 
@@ -86,17 +88,9 @@ if ($registryJSON) {
 
                 $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
 
-                if ($backupsEnabled) {
-                    $regKeyObject.backupDirectory = $scriptRunBackupDir
-                }
-
-                $setResult = $regKeyObject.addToReg()
-
-                if ($setResult) {
-                    $successfulTweaks++
-                }
+            
             }
-            elseif($tweak.Action.ToUpper() -eq 'DEL') {
+            elseif ($tweakAction -eq 'DEL') {
 
                 $requiredProperties = @('RegPath')
 
@@ -107,16 +101,19 @@ if ($registryJSON) {
                 $tweakType = if (!([string]::IsNullOrEmpty($tweak.Type))) { $tweak.Type.ToUpper() } else { $null }
 
                 $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweakType, $null, $null)
+            }
 
-                if ($backupsEnabled) {
-                    $regKeyObject.backupDirectory = $scriptRunBackupDir
-                }
+            if ($backupsEnabled) {
+                $regKeyObject.backupDirectory = $scriptRunBackupDir
+            }
 
-                $setResult = $regKeyObject.deleteFromReg()
-
-                if ($setResult) {
-                    $successfulTweaks++
-                }
+            $setResult = switch ($tweakAction) {
+                'ADD' {$regKeyObject.addToReg()}
+                'DEL' {$regKeyObject.deleteFromReg()}
+            }
+            
+            if ($setResult) {
+                $successfulTweaks++
             }
         }
 

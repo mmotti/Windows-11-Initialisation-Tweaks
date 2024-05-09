@@ -185,18 +185,18 @@ Class RegistryKey {
                 # Key value exists
                 if ($null -ne $itemPropertyObject) {
 
-                    # Double check the key matches our target type
-                    $existingRegValueType = $itemPropertyObject.$($this.valueName).GetType().Name
-                    $existingRegValueType = switch ($existingRegValueType) {
-                        'String' {'STRING'}
-                        'Int32' {'DWORD'}
-                        'Int64' {'QWORD'}
-                        'Byte[]' {'BINARY'}
-                        'String[]' {'MULTISTRING'}
-                        Default {'UNKNOWN'}
-                    }
-
                     if (!([string]::IsNullOrEmpty($this.type))) {
+
+                        # Double check the key matches our target type
+                        $existingRegValueType = $itemPropertyObject.$($this.valueName).GetType().Name
+                        $existingRegValueType = switch ($existingRegValueType) {
+                            'String' {'STRING'}
+                            'Int32' {'DWORD'}
+                            'Int64' {'QWORD'}
+                            'Byte[]' {'BINARY'}
+                            'String[]' {'MULTISTRING'}
+                            Default {'UNKNOWN'}
+                        }
                         # Reg value exists but key types are different
                         if ($existingRegValueType -ne $this.type) {
                             Write-Host "${psFriendlyKeyName}`nSkipped processing as the specified value type did not match the existing registry key." -ForegroundColor Yellow

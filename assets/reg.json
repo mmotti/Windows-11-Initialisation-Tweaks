@@ -66,6 +66,26 @@
 			"Notes": "Disable 'Show sync provider notifications'"
 		}
 	],
+	"Power Options": [
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet001\\Control\\Session Manager\\Power",
+			"Name": "HiberbootEnabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable fast startup"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power",
+			"Name": "HiberbootEnabled",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable fast startup"
+		}
+	],
 	"Privacy / Annoyances": [
 		{
 			"IsEnabled": "true",

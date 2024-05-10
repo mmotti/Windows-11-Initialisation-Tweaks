@@ -11,7 +11,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ## Script actions
 
 1. **Apply the Windows(dark) theme.**
-    
+
     Windows is a little particular with the wallpaper; sometimes it needs a reboot or multiple script runs.
 
 1. **Taskbar:**
@@ -51,16 +51,12 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
     Note: It is not possible to disable optional diagnostic data without admin elevation programmatically even though you can disable it in control panel without. If you can't run this script as admin and want to disable it, you need to do it manually.
 
-1. **Windows Update**<code style="color : red">*</code>
-    * Disable "automatically download manufacturers' apps and custom icons that are available for your devices"<code style="color : red">*</code>
-      Screw you Alienware Command Centre!
-
 1. **Set the power plan to High Performance.**
 
 1. **Enable RDP** <code style="color : red">*</code>
     * Change registry settings to enable RDP.<code style="color : red">*</code>
     * Enable firewall rules for the associated "Remote Desktop" display group.<code style="color : red">*</code>
-    
+
 1. **Remove the Microsoft Edge shortcut from the Public Desktop** <code style="color : red">*</code>
 
 1. **Run OneDrive Uninstallers:**<code style="color : red">*</code>

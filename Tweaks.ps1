@@ -74,7 +74,7 @@ if ($registryJSON) {
 
     Write-Host 'Killing Windows Explorer...'
     taskkill /f /im explorer.exe 2>&1> $null
-    
+
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
         Write-Host ("Applying registry tweaks for ${category}:")
@@ -101,7 +101,7 @@ if ($registryJSON) {
 
                 $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
 
-            
+
             }
             elseif ($tweakAction -eq 'DEL') {
 
@@ -124,7 +124,7 @@ if ($registryJSON) {
                 'ADD' {$regKeyObject.addToReg()}
                 'DEL' {$regKeyObject.deleteFromReg()}
             }
-            
+
             if ($setResult) {
                 $successfulTweaks++
             }
@@ -135,8 +135,8 @@ if ($registryJSON) {
             {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
             {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied', 'Green'}
         }
-        
-        Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1] 
+
+        Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]
     }
 }
 

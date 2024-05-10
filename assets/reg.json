@@ -363,5 +363,16 @@
 			"Value": "C:\\Windows\\web\\wallpaper\\Windows\\img19.jpg",
 			"Notes": "Set the active theme to Windows(dark)"
 		}
+	],
+	"Windows Update": [
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Device Metadata",
+			"Name": "PreventDeviceMetadataFromNetwork",
+			"Type": "DWORD",
+			"Value": 1,
+			"Notes": "Disable automatic driver installation"
+		}
 	]
 }

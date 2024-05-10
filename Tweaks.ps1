@@ -79,7 +79,7 @@ if ($registryJSON) {
 
         Write-Host ("Applying registry tweaks for ${category}:")
         $tweaks = $registryJSON.$category | Where-Object {$_.IsEnabled.ToUpper() -eq 'TRUE'}
-        $tweakCount = $tweaks.Count
+        $tweakCount = @($tweaks).Count
         $successfulTweaks = 0
 
         foreach ($tweak in $tweaks) {
@@ -135,8 +135,8 @@ if ($registryJSON) {
             {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
             {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied', 'Green'}
         }
-
-        Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]
+        
+        Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1] 
     }
 }
 

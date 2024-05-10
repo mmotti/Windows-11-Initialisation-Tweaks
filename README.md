@@ -31,6 +31,8 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Open "This PC" by default.
     * Disable 'Show sync provider notifications'
 
+1. **Disable fast startup**<code style="color : red">*</code>
+
 1. **Privacy / Annoyances:**<code style="color : red">*</code>
     * Disable online search suggestions.
     * Disable app permission to user advertising ID.

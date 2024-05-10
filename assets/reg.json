@@ -372,7 +372,7 @@
 			"Name": "PreventDeviceMetadataFromNetwork",
 			"Type": "DWORD",
 			"Value": 1,
-			"Notes": "Disable automatic driver installation"
+			"Notes": "Disable 'automatically download manufacturers' apps and custom icons that are available for your devices'"
 		}
 	]
 }

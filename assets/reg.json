@@ -366,7 +366,7 @@
 	],
 	"Windows Update": [
 		{
-			"IsEnabled": "true",
+			"IsEnabled": "false",
 			"Action": "ADD",
 			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Device Metadata",
 			"Name": "PreventDeviceMetadataFromNetwork",

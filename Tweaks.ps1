@@ -251,7 +251,7 @@ if ($userIsAdminElevated) {
 # %localappdata% installer
 # I've come across it installed here too previously
 if (Test-Path $oneDriveUserPath) {
-    $oneDriveUserPath = Get-ChildItem -Path "${env:LOCALAPPDATA})\Microsoft\OneDrive\" `
+    $oneDriveUserPath = Get-ChildItem -Path "${env:LOCALAPPDATA}\Microsoft\OneDrive\" `
                                 -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
     if ($oneDriveUserPath) {
         Write-Host "OneDrive Found: $oneDriveUserPath" -ForegroundColor Yellow

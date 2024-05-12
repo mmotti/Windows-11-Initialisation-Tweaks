@@ -254,7 +254,7 @@ if (Test-Path $oneDriveUserPath) {
     $oneDriveUserPath = Get-ChildItem -Path "${env:LOCALAPPDATA}\Microsoft\OneDrive\" `
                                 -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
     if ($oneDriveUserPath) {
-        Write-Host "OneDrive Found: $oneDriveUserPath" -ForegroundColor Yellow
+        Write-Host "OneDrive Found: $($oneDriveUserPath.FullName)" -ForegroundColor Yellow
         Start-Process $oneDriveUserPath.FullName -ArgumentList '/uninstall' -PassThru | Wait-Process
     }
 }

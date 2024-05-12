@@ -21,6 +21,7 @@ Class RegistryKey {
          $psFriendlyKeyName = switch -Regex ($this.keyName) {
             '^(HKEY_CURRENT_USER)' {$_ -replace $Matches[1], 'HKCU:'}
             '^(HKEY_LOCAL_MACHINE)' {$_ -replace $Matches[1], 'HKLM:'}
+            Default {$this.keyName}
         }
 
         # Handle special cases where the data needs to be formatted from the
@@ -173,6 +174,7 @@ Class RegistryKey {
          $psFriendlyKeyName = switch -Regex ($this.keyName) {
             '^(HKEY_CURRENT_USER)' {$_ -replace $Matches[1], 'HKCU:'}
             '^(HKEY_LOCAL_MACHINE)' {$_ -replace $Matches[1], 'HKLM:'}
+            Default {$this.keyName}
         }
 
         if (Test-Path $psFriendlyKeyName) {

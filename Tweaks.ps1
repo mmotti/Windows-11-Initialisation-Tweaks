@@ -138,7 +138,7 @@ if ($registryJSON) {
         $resultOutput = switch ($successfulTweaks) {
             0 {'All tweaks were skipped or failed to apply.', 'Red'}
             {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
-            {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied', 'Green'}
+            {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied.', 'Green'}
         }
 
         Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]

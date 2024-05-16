@@ -108,6 +108,23 @@
 		{
 			"IsEnabled": "true",
 			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\CPSS\\Store\\AdvertisingInfo",
+			"Name": "Value",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Let apps show me personalised ads by using my advertising ID"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "DEL",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+			"Name": "Id",
+			"Type": "STRING",
+			"Notes": "Disable 'Let apps show me personalised ads by using my advertising ID"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
 			"Name": "SubscribedContent-338387Enabled",
 			"Type": "DWORD",

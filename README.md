@@ -26,6 +26,8 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * ~~Set the icon layout that I like (small icons & sort by item type).~~
 
 1. **File Explorer:**
+    * Hide recent files from Quick Access.
+    * Hide frequently used folders from Quick Access.
     * Show hidden files.
     * Show extensions for known file types.
     * Open "This PC" by default.

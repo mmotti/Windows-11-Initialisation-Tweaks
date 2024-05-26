@@ -36,8 +36,8 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 1. **Disable fast startup**<code style="color : red">*</code>
 
 1. **Privacy / Annoyances:**<code style="color : red">*</code>
-    * Disable Copilot+ Recall.<code style="color : red">*</code> System-wide context.
-    * Disable 'Store my activity history on this device'.<code style="color : red">*</code> System-wide context. 
+    * Disable Copilot+ Recall.<code style="color : red">*</code> (Elevation for system-wide context).
+    * Disable 'Store my activity history on this device'.<code style="color : red">*</code> (Elevation for system-wide context).
     * Disable online search suggestions.
     * Disable app permission to user advertising ID.
     * Disable lock screen "fun facts, tips and tricks" on the lock screen.

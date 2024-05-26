@@ -107,7 +107,7 @@
 		{
 			"IsEnabled": "true",
 			"Action": "ADD",
-			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\AI",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
 			"Name": "DisableAIDataAnalysis",
 			"Type": "DWORD",
 			"Value": 1,

@@ -107,6 +107,15 @@
 		{
 			"IsEnabled": "true",
 			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+			"Name": "PublishUserActivities",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable 'Store my activity history on this device'"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\Explorer",
 			"Name": "DisableSearchBoxSuggestions",
 			"Type": "DWORD",

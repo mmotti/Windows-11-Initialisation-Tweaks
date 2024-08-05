@@ -397,6 +397,15 @@
 			"Type": "DWORD",
 			"Value": 0,
 			"Notes": "Align the taskbar to the left"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+			"Name": "TaskbarSd",
+			"Type": "DWORD",
+			"Value": 1,
+			"Notes": "Select the far corner of the taskbar to show the desktop."
 		}
 	],
 	"Windows Theme": [

@@ -22,6 +22,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Hide the Copilot button.
     * Hide Widgets button.
     * Hide Search button.
+    * Select the far corner of the taskbar to show the desktop.
 
 1. **Desktop icons:**
     * Show "This PC" on the desktop.

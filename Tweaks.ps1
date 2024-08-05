@@ -226,6 +226,7 @@ Write-Host 'Checking for OneDrive...'
 
 $oneDriveProcessName = 'OneDrive.exe'
 $oneDriveUserPath = "${env:LOCALAPPDATA}\Microsoft\OneDrive\*\OneDriveSetup.exe"
+$oneDriveProgramFilesPath = "${env:PROGRAMFILES(X86)}\Microsoft OneDrive\*\OneDriveSetup.exe"
 $oneDriveSystemPaths = @(
     "${env:systemroot}\System32\OneDriveSetup.exe",
     "${env:systemroot}\SysWOW64\OneDriveSetup.exe"
@@ -246,12 +247,20 @@ if ($userIsAdminElevated) {
             Start-Process $uninstallPath -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
         }
     }
+
+    $oneDriveProgramFiles = Get-ChildItem -Path $oneDriveProgramFilesPath `
+                                -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
+
+    if ($oneDriveProgramFiles) {
+        Write-Host "OneDrive Found: $($oneDriveProgramFiles.FullName)" -ForegroundColor Yellow
+        Start-Process $oneDriveProgramFiles.FullName -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
+    }
 }
 
 # %localappdata% installer
 # I've come across it installed here too previously
 if (Test-Path $oneDriveUserPath) {
-    $oneDriveUserPath = Get-ChildItem -Path "${env:LOCALAPPDATA}\Microsoft\OneDrive\" `
+    $oneDriveUserPath = Get-ChildItem -Path $oneDriveUserPath `
                                 -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
     if ($oneDriveUserPath) {
         Write-Host "OneDrive Found: $($oneDriveUserPath.FullName)" -ForegroundColor Yellow

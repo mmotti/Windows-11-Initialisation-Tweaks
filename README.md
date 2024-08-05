@@ -10,6 +10,9 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 ## Script actions
 
+1. **Defaults**
+    * Set Windows Terminal as the default console application.
+    
 1. **Apply the Windows(dark) theme.**
 
     Windows is a little particular with the wallpaper; sometimes it needs a reboot or multiple script runs.

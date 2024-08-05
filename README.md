@@ -44,14 +44,14 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Get tips and suggestions when using Windows" notifications.
     * Disable "Show me suggested content in the Settings app".
     * Disable the "Windows welcome experience" after updates.
-    * Disabled "Suggest ways to get the most out of Windows.
-    * Disabled "Tailored experiences".
-    * Disabled "Show recommendations for tips, shortcuts, new apps and more" in the start menu.
-    * Disabled "Let websites show me locally relevant content by accessing my language list".
-    * Disabled "Let Windows improve Start and Search by tracking app launches".
-    * Disabled "Improve ink and typing".
-    * Disabled "Sending optional diagnostic data". <code style="color : red">*</code>
-    * Disabled Windows toast suggestions (notifications).
+    * Disable "Suggest ways to get the most out of Windows.
+    * Disable "Tailored experiences".
+    * Disable "Show recommendations for tips, shortcuts, new apps and more" in the start menu.
+    * Disable "Let websites show me locally relevant content by accessing my language list".
+    * Disable "Let Windows improve Start and Search by tracking app launches".
+    * Disable "Improve ink and typing".
+    * Disable "Sending optional diagnostic data". <code style="color : red">*</code>
+    * Disable Windows toast suggestions (notifications).
 
     Note: It is not possible to disable optional diagnostic data without admin elevation programmatically even though you can disable it in control panel without. If you can't run this script as admin and want to disable it, you need to do it manually.
 

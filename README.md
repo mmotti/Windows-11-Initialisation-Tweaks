@@ -65,6 +65,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Run OneDrive Uninstallers:**<code style="color : red">*</code>
     * Run the uninstaller within the %localappdata% folder.
+    * Run the uninstaller within the %programfiles(x86)% folder with `/uninstall /allusers` <code style="color : red">*</code>
     * Run the uninstaller within the Windows folders with `/uninstall /allusers` <code style="color : red">*</code>
 
       Note: Windows will likely install these again.

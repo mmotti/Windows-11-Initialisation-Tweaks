@@ -156,7 +156,9 @@ if ($registryJSON) {
 Write-Host 'Starting Windows Explorer process...'
 Start-Process explorer.exe
 
-# Chat-GPT generated code to "refresh" the current wallpaper.
+# Chat-GPT generated code to "refresh" the current wallpaper
+# and send a virtual F5 to the desktop. 
+
 
 Add-Type @"
 using System;
@@ -166,21 +168,6 @@ public class User32 {
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SystemParametersInfo(uint action, uint param, IntPtr vparam, uint init);
 }
-"@
-
-$SPI_SETDESKWALLPAPER = 0x0014
-$SPIF_UPDATEINIFILE = 0x01
-$SPIF_SENDCHANGE = 0x02
-
-[User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
-
-
-# More ChatGPT code to send an F5 to the desktop.
-# Doesn't require window focus when using Windows Sandbox.
-
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
 
 public class RefreshDesktop
 {
@@ -208,6 +195,12 @@ public class RefreshDesktop
     }
 }
 "@
+
+$SPI_SETDESKWALLPAPER = 0x0014
+$SPIF_UPDATEINIFILE = 0x01
+$SPIF_SENDCHANGE = 0x02
+
+[User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
 
 [RefreshDesktop]::Refresh()
 

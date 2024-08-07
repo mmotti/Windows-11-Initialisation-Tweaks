@@ -249,7 +249,7 @@ if ($userIsAdminElevated) {
     }
 
     $oneDriveProgramFiles = Get-ChildItem -Path $oneDriveProgramFilesPath `
-                                -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
+                                -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
 
     if ($oneDriveProgramFiles) {
         Write-Host "OneDrive Found: $($oneDriveProgramFiles.FullName)" -ForegroundColor Yellow
@@ -261,7 +261,7 @@ if ($userIsAdminElevated) {
 # I've come across it installed here too previously
 if (Test-Path $oneDriveUserPath) {
     $oneDriveUserPath = Get-ChildItem -Path $oneDriveUserPath `
-                                -Filter OneDriveSetup.exe -Recurse | Select-Object -First 1
+                                -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($oneDriveUserPath) {
         Write-Host "OneDrive Found: $($oneDriveUserPath.FullName)" -ForegroundColor Yellow
         Start-Process $oneDriveUserPath.FullName -ArgumentList '/uninstall' -PassThru | Wait-Process
@@ -272,7 +272,7 @@ if (Test-Path $oneDriveUserPath) {
 
  # Remove backup directory if no changes were made
  if ($backupsEnabled) {
-    if (!(Get-ChildItem -Path $scriptRunBackupDir)) {
+    if (!(Get-ChildItem -Path $scriptRunBackupDir -ErrorAction SilentlyContinue)) {
         Remove-Item -Path $scriptRunBackupDir
     }
  }

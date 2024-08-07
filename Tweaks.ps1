@@ -149,6 +149,24 @@ if ($registryJSON) {
 Write-Host 'Starting Windows Explorer process...'
 Start-Process explorer.exe
 
+# Chat-GPT generated code to "refresh" the current wallpaper
+
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class User32 {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(uint action, uint param, IntPtr vparam, uint init);
+}
+"@
+
+$SPI_SETDESKWALLPAPER = 0x0014
+$SPIF_UPDATEINIFILE = 0x01
+$SPIF_SENDCHANGE = 0x02
+
+[User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
+
 # Set the High Performance power plan
 
 Write-Host 'Tweaking power plan...'

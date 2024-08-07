@@ -24,18 +24,20 @@ Function Test-IsAdminRequired {
     return $false
 }
 
-# Check for Windows 11
+# Check for Windows 11.
+
 if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
     throw "Windows 11 is required for this script to run."
 }
 
 
-# Check for Administrator
-# and exit if necessary
+# Check for Administrator and exit if necessary.
+
 $userIsAdminElevated = Test-IsAdminElevated
 
-# Check for whether to enable backups or not
-# Disable if running in Windows Sandbox as read-only access and... it's a sandbox
+# Check for whether to enable backups or not.
+# Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
+
 $backupsEnabled = $true
 
 if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
@@ -43,12 +45,15 @@ if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
 }
 
 if ($backupsEnabled) {
-    # Initialise the backup folders
+
+    # Initialise the backup folders.
+
     $backupDir = "$PSScriptRoot\backups"
     $scriptRunID = Get-date -Format 'dd-MM-yy_HH-mm-ss'
     $scriptRunBackupDir = "$backupDir\$scriptRunID"
 
-    # Create the backup dir
+    # Create the backup dir.
+
     $backupDirs = @(
         $backupDir,
         $scriptRunBackupDir
@@ -66,7 +71,7 @@ if ($backupsEnabled) {
     }
 }
 
-# Load JSON file with the registry tweaks
+# Load JSON file with the registry tweaks.
 
 $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
 
@@ -89,7 +94,8 @@ if ($registryJSON) {
 
         foreach ($tweak in $tweaks) {
 
-            # Check at least an action is set
+            # Check at least an action is set.
+
             if ([string]::IsNullOrEmpty($tweak.Action)) {
                 continue
             }
@@ -145,13 +151,12 @@ if ($registryJSON) {
     }
 }
 
-# Refresh after the changes have been made
+# Refresh after the changes have been made.
+
 Write-Host 'Starting Windows Explorer process...'
 Start-Process explorer.exe
 
-# Chat-GPT generated code to "refresh" the current wallpaper
-# Followed by some calls to shell.applicaiton and WScript.Shell to mimic
-# a user refreshing their desktop with the F5 key.
+# Chat-GPT generated code to "refresh" the current wallpaper.
 
 Add-Type @"
 using System;
@@ -206,7 +211,7 @@ public class RefreshDesktop
 
 [RefreshDesktop]::Refresh()
 
-# Set the High Performance power plan
+# Set the High Performance power plan.
 
 Write-Host 'Tweaking power plan...'
 
@@ -231,11 +236,11 @@ if ($powerSchemes) {
     }
 }
 
-# Admin related tasks
+# Admin related tasks.
 
 if ($userIsAdminElevated) {
 
-    # Enable RDP Firewall rules
+    # Enable RDP Firewall rules.
 
     Write-Host 'Enabling RDP firewall rules...'
 
@@ -247,7 +252,7 @@ if ($userIsAdminElevated) {
         Write-Host "Failed to activate firewall rules" -ForegroundColor Red
     }
 
-    # Remove Public Desktop shortcuts
+    # Remove Public Desktop shortcuts.
 
     Write-Host 'Removing specified Public Desktop shortcuts...'
 
@@ -277,7 +282,7 @@ if ($userIsAdminElevated) {
 }
 
 
-# Uninstall OneDrive
+# Uninstall OneDrive.
 
 Write-Host 'Checking for OneDrive...'
 
@@ -314,8 +319,9 @@ if ($userIsAdminElevated) {
     }
 }
 
-# %localappdata% installer
-# I've come across it installed here too previously
+# %localappdata% installer.
+# I've come across it installed here too previously.
+
 if (Test-Path $oneDriveUserPath) {
     $oneDriveUserPath = Get-ChildItem -Path $oneDriveUserPath `
                                 -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -325,7 +331,8 @@ if (Test-Path $oneDriveUserPath) {
     }
 }
 
- # Remove backup directory if no changes were made
+ # Remove backup directory if no changes were made.
+ 
  if ($backupsEnabled) {
     if (!(Get-ChildItem -Path $scriptRunBackupDir -ErrorAction SilentlyContinue)) {
         Remove-Item -Path $scriptRunBackupDir

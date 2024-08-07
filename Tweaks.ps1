@@ -169,16 +169,42 @@ $SPIF_SENDCHANGE = 0x02
 
 [User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
 
-# Bring the desktop into view
-(New-Object -ComObject shell.application).toggleDesktop()
-Start-Sleep -Milliseconds 300
 
-# Create a COM object for WScript.Shell
-$WshShell = New-Object -ComObject WScript.Shell
-Start-Sleep -Milliseconds 300
+# More ChatGPT code to send an F5 to the desktop.
+# Doesn't require window focus when using Windows Sandbox.
 
-# Emulate F5 to refresh the desktop
-$WshShell.SendKeys("{F5}")
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class RefreshDesktop
+{
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    public const uint WM_KEYDOWN = 0x0100;
+    public const uint WM_KEYUP = 0x0101;
+    public const int VK_F5 = 0x74; // Virtual-key code for the F5 key
+
+    public static void Refresh()
+    {
+        IntPtr hWnd = FindWindow("Progman", "Program Manager");
+        if (hWnd == IntPtr.Zero)
+        {
+            throw new Exception("Could not find the desktop window.");
+        }
+
+        PostMessage(hWnd, WM_KEYDOWN, (IntPtr)VK_F5, IntPtr.Zero);
+        PostMessage(hWnd, WM_KEYUP, (IntPtr)VK_F5, IntPtr.Zero);
+    }
+}
+"@
+
+[RefreshDesktop]::Refresh()
 
 # Set the High Performance power plan
 
@@ -298,8 +324,6 @@ if (Test-Path $oneDriveUserPath) {
         Start-Process $oneDriveUserPath.FullName -ArgumentList '/uninstall' -PassThru | Wait-Process
     }
 }
-
-#>
 
  # Remove backup directory if no changes were made
  if ($backupsEnabled) {

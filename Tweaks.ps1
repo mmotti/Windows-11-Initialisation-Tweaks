@@ -150,6 +150,8 @@ Write-Host 'Starting Windows Explorer process...'
 Start-Process explorer.exe
 
 # Chat-GPT generated code to "refresh" the current wallpaper
+# Followed by some calls to shell.applicaiton and WScript.Shell to mimic
+# a user refreshing their desktop with the F5 key.
 
 Add-Type @"
 using System;
@@ -166,6 +168,17 @@ $SPIF_UPDATEINIFILE = 0x01
 $SPIF_SENDCHANGE = 0x02
 
 [User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
+
+# Bring the desktop into view
+(New-Object -ComObject shell.application).toggleDesktop()
+Start-Sleep -Milliseconds 300
+
+# Create a COM object for WScript.Shell
+$WshShell = New-Object -ComObject WScript.Shell
+Start-Sleep -Milliseconds 300
+
+# Emulate F5 to refresh the desktop
+$WshShell.SendKeys("{F5}")
 
 # Set the High Performance power plan
 

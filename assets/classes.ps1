@@ -101,7 +101,7 @@ Class RegistryKey {
                         return $true
                     }
                     catch{
-                        Write-Host "${psFriendlyKeyName}`n$($this.valueName)`nFailed to set reg value"
+                        Write-Host "${psFriendlyKeyName}`n$($this.valueName)`nFailed to set reg value" -ForegroundColor Red
                         return $false
                     }
                 }
@@ -132,7 +132,7 @@ Class RegistryKey {
                     return $true
                 }
                 catch {
-                    Write-Host "${psFriendlyKeyName}`n$($this.valueName)`Failed to create reg value" -ForegroundColor Red
+                    Write-Host "${psFriendlyKeyName}`n$($this.valueName)`nFailed to create reg value" -ForegroundColor Red
                     return $false
                 }
             }

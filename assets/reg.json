@@ -381,7 +381,7 @@
 			"Notes": "Hide the Copilot button"
 		},
 		{
-			"IsEnabled": "true",
+			"IsEnabled": "false",
 			"Action": "ADD",
 			"RegPath": "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
 			"Name": "TaskbarDa",

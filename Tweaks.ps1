@@ -347,7 +347,9 @@ Write-Host 'Restarting explorer...'
 $explorerProcess = Get-Process -Name "explorer" -ErrorAction SilentlyContinue
 
 if ($explorerProcess) {
-    $explorerProcess | Stop-Process
+    $explorerProcess | ForEach-Object {
+        $_ | Stop-Process -Force
+    } 
 } else {
     Start-Process "explorer"
 }
@@ -355,9 +357,12 @@ if ($explorerProcess) {
 Write-Output "Waiting for explorer..."
 
 while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
-    Start-Sleep -Milliseconds 300
+    Start-Sleep -Milliseconds 500
     continue
 }
+
+# Allow some init time.
+Start-sleep -Seconds 3
 
 Write-Output "Refreshing desktop..."
 

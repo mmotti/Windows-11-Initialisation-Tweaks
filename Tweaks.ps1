@@ -270,22 +270,13 @@ if ($userIsAdminElevated) {
 
     $publicDesktopShortcutsFound = $false
 
-    foreach ($shortcut in $publicDesktopShortcuts) {
-
-        if (Test-Path $shortcut) {
-            $publicDesktopShortcutsFound = $true
-            try {
-                Remove-item $shortcut
-                Write-Host "$shortcut`nRemoved" -ForegroundColor Green
-            }
-            catch {
-                Write-Host "$shortcut`nFailed to remove" -ForegroundColor Red
-            }
-        }
+    $publicDesktopShortcuts | Where-Object {Test-Path $_} | ForEach-Object {
+        $publicDesktopShortcutsFound = $publicDesktopShortcutsFound -or $true
+        Remove-Item $_
     }
 
     if(!$publicDesktopShortcutsFound) {
-        Write-Host 'No shortcuts require removal' -ForegroundColor Green
+        Write-Host 'No shortcuts require removal.' -ForegroundColor Green
     }
 }
 

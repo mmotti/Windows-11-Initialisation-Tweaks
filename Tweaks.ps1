@@ -354,8 +354,8 @@ if ($explorerProcess) {
 
 Write-Output "Waiting for explorer..."
 
-while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::Zero) {
-    Start-Sleep -Milliseconds 500
+while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
+    Start-Sleep -Milliseconds 300
     continue
 }
 
@@ -368,5 +368,10 @@ $SPIF_UPDATEINIFILE = 0x01
 $SPIF_SENDCHANGE = 0x02
 
 [User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE) | Out-Null
+
+while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::Zero) {
+    Start-Sleep -Milliseconds 500
+    continue
+}
 
 [RefreshDesktop]::Refresh()

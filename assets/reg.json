@@ -129,9 +129,28 @@
 			"IsEnabled": "true",
 			"Action": "ADD",
 			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
+			"Name": "AllowRecallEnablement",
+			"Type": "DWORD",
+			"Value": 0,
+			"Notes": "Disable Copilot+ Recall"
+		},
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI",
 			"Name": "DisableAIDataAnalysis",
 			"Type": "DWORD",
 			"Value": 1,
+			"Notes": "Disable Copilot+ Recall"
+		},
+
+		{
+			"IsEnabled": "true",
+			"Action": "ADD",
+			"RegPath": "HKEY_CURRENT_USER\\Software\\Policies\\Microsoft\\Windows\\WindowsAI",
+			"Name": "AllowRecallEnablement",
+			"Type": "DWORD",
+			"Value": 0,
 			"Notes": "Disable Copilot+ Recall"
 		},
 		{

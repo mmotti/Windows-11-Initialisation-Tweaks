@@ -226,21 +226,21 @@ Write-Host 'Tweaking power plan...'
 $powerSchemes = powercfg /list
 
 if ($powerSchemes) {
-    $activeSchemeGUID = $powerSchemes -match '\*$' `
-                                    -replace "Power Scheme GUID: ([a-z0-9\-]+).*",'$1'
-    $desiredSchemeGUID = $powerSchemes -match 'High performance' `
-                                    -replace "Power Scheme GUID: ([a-z0-9\-]+).*",'$1'
 
-    if ($activeSchemeGUID -ne $desiredSchemeGUID) {
+    $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+).*\*').Groups[1].Value
+    $desiredSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+).*\(High performance\)').Groups[1].Value
+
+    if ($desiredSchemeGUID -and $activeSchemeGUID -ne $desiredSchemeGUID) {
+        
         powercfg /setactive $desiredSchemeGUID
-    }
 
-    if ($LASTEXITCODE -eq 0)
-    {
-        Write-Host "High performance profile active" -ForegroundColor Green
-    }
-    else {
-        write-Host "Failed to set High Performance power plan" -ForegroundColor Red
+        if ($LASTEXITCODE -eq 0)
+        {
+            Write-Host "High performance profile active" -ForegroundColor Green
+        }
+        else {
+            write-Host "Failed to set High Performance power plan" -ForegroundColor Red
+        }
     }
 }
 

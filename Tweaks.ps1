@@ -1,13 +1,8 @@
 . "$PSScriptRoot\assets\classes.ps1"
 
 Function Test-IsAdminElevated {
-    if (([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
-            GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-            return $true
-        }
-        else {
-            return $false
-        }
+    return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
+            GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 }
 
 Function Test-IsAdminRequired {
@@ -30,6 +25,79 @@ if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
     throw "Windows 11 is required for this script to run."
 }
 
+# Workaround for taskkill /im not working within Windows Sandbox.
+
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
+
+public static class ProcessUtils {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    
+    // Constants
+    public const int WM_QUIT = 0x0012;
+    
+    public static void KillExplorerSafely() {
+        IntPtr hwnd = FindWindow("Shell_TrayWnd", null);
+        if (hwnd != IntPtr.Zero) {
+            uint processId;
+            GetWindowThreadProcessId(hwnd, out processId);
+            
+            if (processId > 0) {
+                Process explorer = Process.GetProcessById((int)processId);
+                PostMessage(hwnd, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+                explorer.WaitForExit(3000);
+            }
+        }
+    }
+}
+"@
+
+# Workaround for "refreshing" the desktop.
+
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public class User32 {
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(uint action, uint param, IntPtr vparam, uint init);
+}
+
+public class RefreshDesktop
+{
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    public const uint WM_KEYDOWN = 0x0100;
+    public const uint WM_KEYUP = 0x0101;
+    public const int VK_F5 = 0x74; // Virtual-key code for the F5 key
+
+    public static void Refresh()
+    {
+        IntPtr hWnd = FindWindow("Progman", "Program Manager");
+        if (hWnd == IntPtr.Zero)
+        {
+            throw new Exception("Could not find the desktop window.");
+        }
+
+        PostMessage(hWnd, WM_KEYDOWN, (IntPtr)VK_F5, IntPtr.Zero);
+        PostMessage(hWnd, WM_KEYUP, (IntPtr)VK_F5, IntPtr.Zero);
+    }
+}
+"@
 
 # Check for Administrator and exit if necessary.
 
@@ -78,7 +146,7 @@ $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | 
 if ($registryJSON) {
 
     Write-Host 'Killing Windows Explorer...'
-    taskkill /f /im explorer.exe 2>&1> $null
+    [ProcessUtils]::KillExplorerSafely()
 
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
@@ -151,59 +219,6 @@ if ($registryJSON) {
     }
 }
 
-# Refresh after the changes have been made.
-
-Write-Host 'Starting Windows Explorer process...'
-Start-Process explorer.exe
-
-# Chat-GPT generated code to "refresh" the current wallpaper
-# and send a virtual F5 to the desktop. 
-
-
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-
-public class User32 {
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool SystemParametersInfo(uint action, uint param, IntPtr vparam, uint init);
-}
-
-public class RefreshDesktop
-{
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-    public const uint WM_KEYDOWN = 0x0100;
-    public const uint WM_KEYUP = 0x0101;
-    public const int VK_F5 = 0x74; // Virtual-key code for the F5 key
-
-    public static void Refresh()
-    {
-        IntPtr hWnd = FindWindow("Progman", "Program Manager");
-        if (hWnd == IntPtr.Zero)
-        {
-            throw new Exception("Could not find the desktop window.");
-        }
-
-        PostMessage(hWnd, WM_KEYDOWN, (IntPtr)VK_F5, IntPtr.Zero);
-        PostMessage(hWnd, WM_KEYUP, (IntPtr)VK_F5, IntPtr.Zero);
-    }
-}
-"@
-
-$SPI_SETDESKWALLPAPER = 0x0014
-$SPIF_UPDATEINIFILE = 0x01
-$SPIF_SENDCHANGE = 0x02
-
-[User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
-
-[RefreshDesktop]::Refresh()
-
 # Set the High Performance power plan.
 
 Write-Host 'Tweaking power plan...'
@@ -274,7 +289,6 @@ if ($userIsAdminElevated) {
     }
 }
 
-
 # Uninstall OneDrive.
 
 Write-Host 'Checking for OneDrive...'
@@ -291,7 +305,9 @@ $oneDriveProcessObject = Get-Process $oneDriveProcessName -ErrorAction SilentlyC
 
 if ($oneDriveProcessObject) {
     Write-Host "OneDrive process was found" -ForegroundColor Yellow
-    taskkill /f /im OneDrive.exe 2>&1 > $null
+    $oneDriveProcessObject | ForEach-Object {
+        $_ | Stop-Process -ErrorAction SilentlyContinue
+    }
 }
 
 if ($userIsAdminElevated) {
@@ -331,3 +347,35 @@ if (Test-Path $oneDriveUserPath) {
         Remove-Item -Path $scriptRunBackupDir
     }
  }
+
+Write-Host 'Restarting explorer...'
+
+# The "KillExplorerSafely" method leaves at least one explorer process running in the background.
+# To trigger a restart, we should stop the process using conventional methods and allow it to restart automatically.
+
+$explorerProcess = Get-Process -Name "explorer" -ErrorAction SilentlyContinue
+
+if ($explorerProcess) {
+    $explorerProcess | Stop-Process
+} else {
+    Start-Process "explorer"
+}
+
+Write-Output "Waiting for explorer..."
+
+while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::Zero) {
+    Start-Sleep -Milliseconds 500
+    continue
+}
+
+Write-Output "Refreshing desktop..."
+
+# Update / refresh the desktop.
+
+$SPI_SETDESKWALLPAPER = 0x0014
+$SPIF_UPDATEINIFILE = 0x01
+$SPIF_SENDCHANGE = 0x02
+
+[User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE) | Out-Null
+
+[RefreshDesktop]::Refresh()

@@ -227,8 +227,8 @@ $powerSchemes = powercfg /list
 
 if ($powerSchemes) {
 
-    $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+).*\*').Groups[1].Value
-    $desiredSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+).*\(High performance\)').Groups[1].Value
+    $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
+    $desiredSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\(High performance\)').Groups[1].Value
 
     if ($desiredSchemeGUID -and $activeSchemeGUID -ne $desiredSchemeGUID) {
         

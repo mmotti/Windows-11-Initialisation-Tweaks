@@ -19,11 +19,28 @@ Function Test-IsAdminRequired {
     return $false
 }
 
+# ==================== PREREQUISITES CHECK ====================
+
 # Check for Windows 11.
 
 if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
     throw "Windows 11 is required for this script to run."
 }
+
+# Check for Administrator and exit if necessary.
+
+$userIsAdminElevated = Test-IsAdminElevated
+
+# Check for whether to enable backups or not.
+# Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
+
+$backupsEnabled = $true
+
+if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
+    $backupsEnabled = $false
+}
+
+# ==================== SYSTEM UTILITIES ====================
 
 # Workaround for taskkill /im not working within Windows Sandbox.
 
@@ -99,18 +116,7 @@ public class RefreshDesktop
 }
 "@
 
-# Check for Administrator and exit if necessary.
-
-$userIsAdminElevated = Test-IsAdminElevated
-
-# Check for whether to enable backups or not.
-# Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
-
-$backupsEnabled = $true
-
-if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
-    $backupsEnabled = $false
-}
+# ==================== BACKUP INITIALISATION ====================
 
 if ($backupsEnabled) {
 
@@ -138,6 +144,8 @@ if ($backupsEnabled) {
         }
     }
 }
+
+# ==================== REGISTRY TWEAKS ====================
 
 # Load JSON file with the registry tweaks.
 
@@ -219,7 +227,7 @@ if ($registryJSON) {
     }
 }
 
-# Set the High Performance power plan.
+# ==================== HIGH PERFORMANCE POWER PLAN ====================
 
 Write-Host 'Tweaking power plan...'
 
@@ -244,11 +252,9 @@ if ($powerSchemes) {
     }
 }
 
-# Admin related tasks.
+# ==================== ENABLE FEATURES ====================
 
 if ($userIsAdminElevated) {
-
-    # Enable RDP Firewall rules.
 
     Write-Host 'Enabling RDP firewall rules...'
 
@@ -259,8 +265,11 @@ if ($userIsAdminElevated) {
     catch {
         Write-Host "Failed to activate firewall rules" -ForegroundColor Red
     }
+}
 
-    # Remove Public Desktop shortcuts.
+# ==================== REMOVE SHORTCUTS ====================
+
+if ($userIsAdminElevated) {
 
     Write-Host 'Removing specified Public Desktop shortcuts...'
 
@@ -274,7 +283,7 @@ if ($userIsAdminElevated) {
     }
 }
 
-# Uninstall OneDrive.
+# ==================== REMOVE ONEDRIVE ====================
 
 Write-Host 'Checking for OneDrive...'
 
@@ -325,6 +334,8 @@ if (Test-Path $oneDriveUserPath) {
     }
 }
 
+# ==================== BACKUP CLEANUP ====================
+
  # Remove backup directory if no changes were made.
  
  if ($backupsEnabled) {
@@ -332,6 +343,8 @@ if (Test-Path $oneDriveUserPath) {
         Remove-Item -Path $scriptRunBackupDir
     }
  }
+
+# ==================== RESURRECT EXPLORER ====================
 
 Write-Host 'Restarting explorer...'
 
@@ -355,18 +368,19 @@ while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     continue
 }
 
-# Allow some init time.
 Start-sleep -Seconds 3
 
-Write-Output "Refreshing desktop..."
+# ==================== APPLY WALLPAPER CHANGES ====================
 
-# Update / refresh the desktop.
+Write-Output "Applying wallpaper..."
 
 $SPI_SETDESKWALLPAPER = 0x0014
 $SPIF_UPDATEINIFILE = 0x01
 $SPIF_SENDCHANGE = 0x02
 
 [User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE) | Out-Null
+
+# ==================== REFRESH DESKTOP ====================
 
 while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::Zero) {
     Start-Sleep -Milliseconds 500

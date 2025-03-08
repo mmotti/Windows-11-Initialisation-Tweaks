@@ -268,15 +268,9 @@ if ($userIsAdminElevated) {
         'C:\Users\Public\Desktop\Microsoft Edge.lnk'
     )
 
-    $publicDesktopShortcutsFound = $false
-
     $publicDesktopShortcuts | Where-Object {Test-Path $_} | ForEach-Object {
         $publicDesktopShortcutsFound = $publicDesktopShortcutsFound -or $true
         Remove-Item $_
-    }
-
-    if(!$publicDesktopShortcutsFound) {
-        Write-Host 'No shortcuts require removal.' -ForegroundColor Green
     }
 }
 

@@ -273,14 +273,11 @@ if ($userIsAdminElevated) {
 
     Write-Host 'Removing specified Public Desktop shortcuts...'
 
-    $publicDesktopShortcuts = @(
-        'C:\Users\Public\Desktop\Microsoft Edge.lnk'
-    )
-
-    $publicDesktopShortcuts | Where-Object {Test-Path $_} | ForEach-Object {
-        $publicDesktopShortcutsFound = $publicDesktopShortcutsFound -or $true
-        Remove-Item $_
-    }
+    @(
+        'Microsoft Edge.lnk'
+    ) | ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } | 
+        Where-Object { (Test-Path $_) -and $_ -match "\.lnk$" } |
+        Remove-Item -Force
 }
 
 # ==================== REMOVE ONEDRIVE ====================
@@ -368,6 +365,7 @@ while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     continue
 }
 
+Write-Output "Allowing some time for explorer to finish initialising..."
 Start-sleep -Seconds 3
 
 # ==================== APPLY WALLPAPER CHANGES ====================

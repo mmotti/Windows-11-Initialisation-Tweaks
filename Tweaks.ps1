@@ -238,8 +238,6 @@ $powerSchemes = & powercfg /list
 
 if ($powerSchemes) {
     
-    $planChangeSuccessful = $false
-    $planAlreadySet = $false
     $processorString = $null
     $x3dCPU = $false
 
@@ -266,46 +264,10 @@ if ($powerSchemes) {
             Write-Host "Setting active power plan to: $targetPowerPlan"
             & powercfg /setactive $desiredSchemeGUID
 
-            switch ($LASTEXITCODE) {
-                0 { $planChangeSuccessful = $true }
-                default {
-                    $planChangeSuccessful = $false
-                    Write-Error "Failed to set $targetPowerPlan power plan."
-                }
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "Error: Failed to set $targetPowerPlan power plan." -ForegroundColor Red
             }
-        } else {
-            $planAlreadySet = $true
         }
-        
-        <#
-        
-        # Disable sleep whilst on AC power for the Balanced power plan.
-
-        if ($targetPowerPlan -eq "Balanced" -and ($planChangeSuccessful -or $planAlreadySet)) {
-
-            $currentSleepResult = & powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
-
-            if ($currentSleepResult) {
-                
-                $currentSleepMatch = [regex]::Match($currentSleepResult, 'Current AC Power Setting Index:\s(0x[0-9a-f]+)')
-
-                if ($currentSleepMatch.Success) {
-
-                    $currentSleepTimeoutValue = [convert]::ToInt32($currentSleepMatch.Groups[1].Value, 16)
-
-                    if ($currentSleepTimeoutValue -ne 0) {
-
-                        Write-Host "Setting `"Sleep`" whilst on power to never."
-                        & powercfg /change standby-timeout-ac 0
-            
-                        if ($LASTEXITCODE -ne 0) {
-                            Write-Error "Failed to disable sleep on power."
-                        }
-                    }
-                }
-            }
-           
-        }#>
     }
 }
 

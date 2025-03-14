@@ -276,7 +276,9 @@ if ($powerSchemes) {
         } else {
             $planAlreadySet = $true
         }
+        
         <#
+        
         # Disable sleep whilst on AC power for the Balanced power plan.
 
         if ($targetPowerPlan -eq "Balanced" -and ($planChangeSuccessful -or $planAlreadySet)) {
@@ -303,8 +305,8 @@ if ($powerSchemes) {
                 }
             }
            
-        }
-    }#>
+        }#>
+    }
 }
 
 # ==================== ENABLE FEATURES ====================

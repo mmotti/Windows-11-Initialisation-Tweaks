@@ -265,7 +265,7 @@ if ($powerSchemes) {
             & powercfg /setactive $desiredSchemeGUID
 
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "Error: Failed to set $targetPowerPlan power plan." -ForegroundColor Red
+                Write-Host "Failed to set $targetPowerPlan power plan." -ForegroundColor Red
             }
         }
     }

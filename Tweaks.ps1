@@ -250,7 +250,7 @@ if ($powerSchemes) {
         Write-Error "It was not possible to capture the ProcessorNameString"
     }
 
-    $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false}
+    $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
     $targetPowerPlan = if ($x3dCPU) { "Balanced" } else { "High performance" }
 
     $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value

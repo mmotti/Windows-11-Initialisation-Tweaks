@@ -59,7 +59,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
     Note: It is not possible to disable optional diagnostic data without admin elevation programmatically even though you can disable it in control panel without. If you can't run this script as admin and want to disable it, you need to do it manually.
 
-1. **Set the power plan to High Performance.**
+1. **Power plan: Set to Balanced for X3D processors, High Performance for all others.**
 
 1. **Enable RDP** <code style="color : red">*</code>
     * Change registry settings to enable RDP.<code style="color : red">*</code>

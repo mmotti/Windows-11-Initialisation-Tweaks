@@ -227,27 +227,82 @@ if ($registryJSON) {
     }
 }
 
-# ==================== HIGH PERFORMANCE POWER PLAN ====================
+# ==================== SET APPROPRIATE POWER PLAN ====================
+
+# Balanced for X3D, High Performance otherwise.
+# Disable sleep whilst AC powered if target plan is balanced.
 
 Write-Host 'Tweaking power plan...'
 
-$powerSchemes = powercfg /list
+$powerSchemes = & powercfg /list
 
 if ($powerSchemes) {
+    
+    $planChangeSuccessful = $false
+    $planAlreadySet = $false
+    $processorString = $null
+    $x3dCPU = $false
+
+    try {
+        $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
+    }
+    catch {
+        Write-Error "It was not possible to capture the ProcessorNameString"
+    }
+
+    $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false}
+    $targetPowerPlan = if ($x3dCPU) { "Balanced" } else { "High performance" }
 
     $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
-    $desiredSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\(High performance\)').Groups[1].Value
+    $desiredSchemeGUID = [regex]::Match($powerSchemes, "Power Scheme GUID: ([a-f0-9-]+)\s+\($targetPowerPlan\)").Groups[1].Value
 
-    if ($desiredSchemeGUID -and $activeSchemeGUID -ne $desiredSchemeGUID) {
-        
-        powercfg /setactive $desiredSchemeGUID
+    # If the desired GUID was matched and the active power scheme is not our desired scheme.
+    if ($desiredSchemeGUID) {
 
-        if ($LASTEXITCODE -eq 0)
-        {
-            Write-Host "High performance profile active" -ForegroundColor Green
+        # Active scheme is not our target scheme.
+        if ($activeSchemeGUID -ne $desiredSchemeGUID) {
+
+            # Set the desired scheme.
+            Write-Host "Setting active power plan to: $targetPowerPlan"
+            & powercfg /setactive $desiredSchemeGUID
+
+            switch ($LASTEXITCODE) {
+                0 { $planChangeSuccessful = $true }
+                default {
+                    $planChangeSuccessful = $false
+                    Write-Error "Failed to set $targetPowerPlan power plan."
+                }
+            }
+        } else {
+            $planAlreadySet = $true
         }
-        else {
-            write-Host "Failed to set High Performance power plan" -ForegroundColor Red
+
+        # Disable sleep whilst on AC power for the Balanced power plan.
+
+        if ($targetPowerPlan -eq "Balanced" -and ($planChangeSuccessful -or $planAlreadySet)) {
+
+            $currentSleepResult = & powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE
+
+            if ($currentSleepResult) {
+                
+                $currentSleepMatch = [regex]::Match($currentSleepResult, 'Current AC Power Setting Index:\s(0x[0-9a-f]+)')
+
+                if ($currentSleepMatch.Success) {
+
+                    $currentSleepTimeoutValue = [convert]::ToInt32($currentSleepMatch.Groups[1].Value, 16)
+
+                    if ($currentSleepTimeoutValue -ne 0) {
+
+                        Write-Host "Setting `"Sleep`" whilst on power to never."
+                        & powercfg /change standby-timeout-ac 0
+            
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Error "Failed to disable sleep on power."
+                        }
+                    }
+                }
+            }
+           
         }
     }
 }

@@ -1,4 +1,9 @@
+$script:BackedUpRegistryPaths = @()
+
 . "$PSScriptRoot\assets\classes.ps1"
+
+$GENERIC_SUCCESS_MESSAGE = "Tweaks successfully applied."
+$GENERIC_FAIL_MESSAGE = "Failed to apply tweaks."
 
 Function Test-IsAdminElevated {
     return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
@@ -18,6 +23,8 @@ Function Test-IsAdminRequired {
 
     return $false
 }
+
+Clear-Host
 
 # ==================== PREREQUISITES CHECK ====================
 
@@ -41,42 +48,6 @@ if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
 }
 
 # ==================== SYSTEM UTILITIES ====================
-
-# Workaround for taskkill /im not working within Windows Sandbox.
-
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
-
-public static class ProcessUtils {
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-    
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-    
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-    
-    // Constants
-    public const int WM_QUIT = 0x0012;
-    
-    public static void KillExplorerSafely() {
-        IntPtr hwnd = FindWindow("Shell_TrayWnd", null);
-        if (hwnd != IntPtr.Zero) {
-            uint processId;
-            GetWindowThreadProcessId(hwnd, out processId);
-            
-            if (processId > 0) {
-                Process explorer = Process.GetProcessById((int)processId);
-                PostMessage(hwnd, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
-                explorer.WaitForExit(3000);
-            }
-        }
-    }
-}
-"@
 
 # Workaround for "refreshing" the desktop.
 
@@ -153,9 +124,6 @@ $registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | 
 
 if ($registryJSON) {
 
-    Write-Host 'Killing Windows Explorer...'
-    [ProcessUtils]::KillExplorerSafely()
-
     foreach ($category in $registryJSON.PSObject.Properties.Name) {
 
         $tweaks = $registryJSON.$category | Where-Object {$_.IsEnabled.ToUpper() -eq 'TRUE'}
@@ -166,7 +134,7 @@ if ($registryJSON) {
             continue
         }
 
-        Write-Host ("Applying registry tweaks for ${category}:")
+        Write-Host "[i] Processing `"$category`" registry tweaks..."
 
         foreach ($tweak in $tweaks) {
 
@@ -220,7 +188,7 @@ if ($registryJSON) {
         $resultOutput = switch ($successfulTweaks) {
             0 {'All tweaks were skipped or failed to apply.', 'Red'}
             {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
-            {$successfulTweaks -eq $tweakCount} {'Tweaks successfully applied.', 'Green'}
+            {$successfulTweaks -eq $tweakCount} {"Tweaks successfully applied.", 'Green'}
         }
 
         Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]
@@ -232,12 +200,12 @@ if ($registryJSON) {
 # Balanced for X3D, High Performance otherwise.
 # Disable sleep whilst AC powered if target plan is balanced.
 
-Write-Host 'Tweaking power plan...'
+Write-Host '[i] Checking power plan...'
 
 $powerSchemes = & powercfg /list
 
 if ($powerSchemes) {
-    
+
     $processorString = $null
     $x3dCPU = $false
 
@@ -257,16 +225,21 @@ if ($powerSchemes) {
     # If the desired GUID was matched and the active power scheme is not our desired scheme.
     if ($desiredSchemeGUID) {
 
-        # Active scheme is not our target scheme.
-        if ($activeSchemeGUID -ne $desiredSchemeGUID) {
+        if ($activeSchemeGUID -eq $desiredSchemeGUID) {
+
+            Write-Host "Successfully applied $targetPowerPlan power plan." -ForegroundColor Green
+
+        } else {
 
             # Set the desired scheme.
-            Write-Host "Setting active power plan to: $targetPowerPlan"
+            Write-Host "Setting active power plan to: $targetPowerPlan" -ForegroundColor Blue
             & powercfg /setactive $desiredSchemeGUID
 
             if ($LASTEXITCODE -ne 0) {
                 Write-Host "Failed to set $targetPowerPlan power plan." -ForegroundColor Red
             }
+
+            Write-Host "Successfully applied $targetPowerPlan." -ForegroundColor Green
         }
     }
 }
@@ -274,15 +247,16 @@ if ($powerSchemes) {
 # ==================== ENABLE FEATURES ====================
 
 if ($userIsAdminElevated) {
-
-    Write-Host 'Enabling RDP firewall rules...'
-
-    try {
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Write-Host "Firewall rules enabled" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Failed to activate firewall rules" -ForegroundColor Red
+    # Apply Windows Firewall rules only outside of Windows Sandbox.
+    if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
+        try {
+            Write-Host "[i] Enabling firewall rules (allow RDP)..."
+            Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+            Write-Host $GENERIC_SUCCESS_MESSAGE -ForegroundColor Green
+        }
+        catch {
+            Write-Host $GENERIC_FAIL_MESSAGE -ForegroundColor Red
+        }
     }
 }
 
@@ -290,18 +264,30 @@ if ($userIsAdminElevated) {
 
 if ($userIsAdminElevated) {
 
-    Write-Host 'Removing specified Public Desktop shortcuts...'
-
-    @(
+    $publicShortcuts = @(
         'Microsoft Edge.lnk'
-    ) | ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } | 
+    )
+
+    if (@($publicShortcuts).Count -gt 0) {
+
+        $publicShortcuts |
+        ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } |
         Where-Object { (Test-Path $_) -and $_ -match "\.lnk$" } |
-        Remove-Item -Force
+        ForEach-Object {
+            try {
+                $_ | Remove-Item -Force
+                Write-Host "[-] $_" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "Failed to remove `"$_`"" -ForegroundColor Red
+            }
+        }
+    }
 }
 
 # ==================== REMOVE ONEDRIVE ====================
 
-Write-Host 'Checking for OneDrive...'
+Write-Host "[i] Processing OneDrive..."
 
 $oneDriveProcessName = 'OneDrive.exe'
 $oneDriveUserPath = "${env:LOCALAPPDATA}\Microsoft\OneDrive\*\OneDriveSetup.exe"
@@ -324,7 +310,7 @@ if ($userIsAdminElevated) {
 
     foreach ($uninstallPath in $oneDriveSystemPaths) {
         if (Test-Path $uninstallPath) {
-            Write-Host "OneDrive Found: $uninstallPath" -ForegroundColor Yellow
+            Write-Host "Executing: $uninstallPath /uninstall /allusers" -ForegroundColor Blue
             Start-Process $uninstallPath -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
         }
     }
@@ -333,7 +319,7 @@ if ($userIsAdminElevated) {
                                 -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
 
     if ($oneDriveProgramFiles) {
-        Write-Host "OneDrive Found: $($oneDriveProgramFiles.FullName)" -ForegroundColor Yellow
+        Write-Host "Executing: $($oneDriveProgramFiles.FullName) /uninstall /allusers" -ForegroundColor Blue
         Start-Process $oneDriveProgramFiles.FullName -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
     }
 }
@@ -345,7 +331,7 @@ if (Test-Path $oneDriveUserPath) {
     $oneDriveUserPath = Get-ChildItem -Path $oneDriveUserPath `
                                 -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($oneDriveUserPath) {
-        Write-Host "OneDrive Found: $($oneDriveUserPath.FullName)" -ForegroundColor Yellow
+        Write-Host "Executing: $($oneDriveUserPath.FullName) /uninstall" -ForegroundColor Blue
         Start-Process $oneDriveUserPath.FullName -ArgumentList '/uninstall' -PassThru | Wait-Process
     }
 }
@@ -353,7 +339,7 @@ if (Test-Path $oneDriveUserPath) {
 # ==================== BACKUP CLEANUP ====================
 
  # Remove backup directory if no changes were made.
- 
+
  if ($backupsEnabled) {
     if (!(Get-ChildItem -Path $scriptRunBackupDir -ErrorAction SilentlyContinue)) {
         Remove-Item -Path $scriptRunBackupDir
@@ -362,34 +348,17 @@ if (Test-Path $oneDriveUserPath) {
 
 # ==================== RESURRECT EXPLORER ====================
 
-Write-Host 'Restarting explorer...'
+Write-Host '[i] Restarting explorer...'
 
-# The "KillExplorerSafely" method leaves at least one explorer process running in the background.
-# To trigger a restart, we should stop the process using conventional methods and allow it to restart automatically.
-
-$explorerProcess = Get-Process -Name "explorer" -ErrorAction SilentlyContinue
-
-if ($explorerProcess) {
-    $explorerProcess | ForEach-Object {
-        $_ | Stop-Process -Force
-    } 
-} else {
-    Start-Process "explorer"
-}
-
-Write-Output "Waiting for explorer..."
+Stop-Process -Name explorer -Force
 
 while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     Start-Sleep -Milliseconds 500
-    continue
 }
-
-Write-Output "Allowing some time for explorer to finish initialising..."
-Start-sleep -Seconds 3
 
 # ==================== APPLY WALLPAPER CHANGES ====================
 
-Write-Output "Applying wallpaper..."
+Write-Host "[i] Applying wallpaper..."
 
 $SPI_SETDESKWALLPAPER = 0x0014
 $SPIF_UPDATEINIFILE = 0x01
@@ -404,4 +373,7 @@ while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::
     continue
 }
 
+Write-Host "[i] Refreshing desktop..."
 [RefreshDesktop]::Refresh()
+
+Write-Host "[i] Done."

@@ -1,6 +1,12 @@
 $script:BackedUpRegistryPaths = @()
 
-. "$PSScriptRoot\assets\classes.ps1"
+$classFilePath = "$PSScriptRoot\assets\classes.ps1"
+
+if (!(Test-Path $classFilePath)) {
+    throw "The file path `"$classFilePath`" does not exist."
+}
+
+. $classFilePath
 
 $GENERIC_SUCCESS_MESSAGE = "Tweaks successfully applied."
 $GENERIC_FAIL_MESSAGE = "Failed to apply tweaks."

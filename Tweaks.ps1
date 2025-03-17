@@ -1,33 +1,113 @@
 $script:BackedUpRegistryPaths = @()
+$script:DisableBackups = $false
+$script:RegistryTweaksDisabled = $false
 
-$classFilePath = "$PSScriptRoot\assets\classes.ps1"
-
-if (!(Test-Path $classFilePath)) {
-    throw "The file path `"$classFilePath`" does not exist."
-}
-
-. $classFilePath
-
-$GENERIC_SUCCESS_MESSAGE = "Tweaks successfully applied."
-$GENERIC_FAIL_MESSAGE = "Failed to apply tweaks."
-
-Function Test-IsAdminElevated {
+function Test-IsAdminElevated {
     return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
             GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
 }
 
-Function Test-IsAdminRequired {
+function Import-RegKeys {
     param (
-        [Parameter(Mandatory=$true)]
-        $keyName
+        [ValidateNotNullOrEmpty()]
+        [string]$keyPath
     )
 
-    if ($keyName -notmatch '^HKCU' -and !(Test-IsAdminElevated)) {
-        Write-Host "Admin access required: ${keyName}" -ForegroundColor Yellow
-        return $true
+    if (!(Test-Path -Path $keyPath -PathType Container)) {
+        return
+    }
+
+    $regKeys = Get-ChildItem -Path $keyPath -Filter "*.reg" -ErrorAction SilentlyContinue
+
+    foreach ($key in $regKeys) {
+
+        if ($script:DisableBackups -eq $false) {
+            if (!(Export-RegKeys -KeyPath $key.FullName)) {
+                Write-Host "[FAIL] " -NoNewline -ForegroundColor Red
+                Write-Host "$($key.Name): Failed to create registry backup."
+                continue
+            }
+        }
+
+        $result = reg import $key.FullName 2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[FAIL] $($key.Name): $($result -replace '^ERROR:\s*', '')" -ForegroundColor Red
+        } else {
+            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host $key.Name
+        }
+    }
+}
+
+function Export-RegKeys {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$KeyPath
+    )
+
+    if ($script:DisableBackups -eq $false -and !(Test-Path -Path $scriptRunBackupDir)) {
+        return $false
+    }
+
+    $regFileContents = Get-Content -Path $KeyPath -ErrorAction SilentlyContinue
+
+    if ($regFileContents) {
+
+        $pattern = '\[(HKEY_[^\]]+)\]'
+        $patternMatches = [regex]::Matches($regFileContents, $pattern)
+    
+        $patternMatches | ForEach-Object {
+    
+            $keyRegPath = $_.Groups[1].Value
+    
+            if($keyRegPath -notin $script:BackedUpRegistryPaths) {
+    
+                $friendlyFileName = $keyRegPath -replace '^([A-Z]{3,4}):\\|\\', '$1-'
+    
+                $fileNameParts = $friendlyFileName -split '-'
+    
+                if ($fileNameParts.Count -ge 4) {
+                    $friendlyFileName = "$($fileNameParts[0..1] -join '-')...$($fileNameParts[-2..-1] -join '-').reg"
+                } else {
+                    $friendlyFileName = "${friendlyFileName}.reg"
+                }
+    
+                $result = reg export $keyRegPath "$scriptRunBackupDir\$friendlyFileName" /y 2>&1
+    
+                if ($LASTEXITCODE -eq 0) {
+                    $script:BackedUpRegistryPaths += $_.Groups[1].Value
+                    return $true
+                } else {
+                    return $false
+                }
+            } else {
+                return $true
+            }
+        }
     }
 
     return $false
+}
+
+if (!(Test-IsAdminElevated)) {
+
+    Write-Warning "Attempting to relaunch the script with elevated privileges..."
+
+    $scriptPath =  $MyInvocation.MyCommand.Path
+
+    if (Get-Command wt -ErrorAction SilentlyContinue) {
+        $cmd = "wt"
+        $arguments = "new-tab -p `"PowerShell`" powershell -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+    } else {
+        $cmd = "powershell"
+        $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
+    }
+    
+    Start-Process $cmd -ArgumentList $arguments -Verb RunAs
+    exit
 }
 
 Clear-Host
@@ -40,22 +120,14 @@ if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
     throw "Windows 11 is required for this script to run."
 }
 
-# Check for Administrator and exit if necessary.
-
-$userIsAdminElevated = Test-IsAdminElevated
-
 # Check for whether to enable backups or not.
 # Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
 
-$backupsEnabled = $true
-
 if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
-    $backupsEnabled = $false
+    $script:DisableBackups = $true
 }
 
 # ==================== SYSTEM UTILITIES ====================
-
-# Workaround for "refreshing" the desktop.
 
 Add-Type @"
 using System;
@@ -95,7 +167,9 @@ public class RefreshDesktop
 
 # ==================== BACKUP INITIALISATION ====================
 
-if ($backupsEnabled) {
+if ($script:DisableBackups -eq $false) {
+
+    Write-Host "[i] Initialising backup area..." -ForegroundColor Blue
 
     # Initialise the backup folders.
 
@@ -116,89 +190,23 @@ if ($backupsEnabled) {
                 New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
             }
             catch {
-                throw "Unable to create backup directory: $dir"
+                Write-Host "[FAIL] Unable to create path: `"$dir`"." -ForegroundColor Red
+                Write-Host "[w] Registry tweaks will be skipped." -ForegroundColor Yellow
+                $script:RegistryTweaksDisabled = $true
+                break
             }
+
+            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "Registry backup directory initialised: `"$scriptRunBackupDir`""
         }
     }
 }
 
 # ==================== REGISTRY TWEAKS ====================
 
-# Load JSON file with the registry tweaks.
-
-$registryJSON = Get-Content "$PSScriptRoot\assets\reg.json" -ErrorAction Stop | ConvertFrom-Json
-
-if ($registryJSON) {
-
-    foreach ($category in $registryJSON.PSObject.Properties.Name) {
-
-        $tweaks = $registryJSON.$category | Where-Object {$_.IsEnabled.ToUpper() -eq 'TRUE'}
-        $tweakCount = @($tweaks).Count
-        $successfulTweaks = 0
-
-        if ($tweakCount -eq 0) {
-            continue
-        }
-
-        Write-Host "[i] Processing `"$category`" registry tweaks..."
-
-        foreach ($tweak in $tweaks) {
-
-            # Check at least an action is set.
-
-            if ([string]::IsNullOrEmpty($tweak.Action)) {
-                continue
-            }
-
-            $tweakAction = $tweak.Action.ToUpper()
-
-            if ($tweakAction -eq 'ADD') {
-
-                $requiredProperties = @('RegPath', 'Name', 'Type', 'Value')
-
-                if ($requiredProperties | Where-Object {[string]::IsNullOrEmpty($tweak.$_)}) {
-                    continue
-                }
-
-                $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweak.Type.ToUpper(), $tweak.Value, $null)
-
-
-            }
-            elseif ($tweakAction -eq 'DEL') {
-
-                $requiredProperties = @('RegPath')
-
-                if ($requiredProperties | Where-Object {[string]::IsNullOrEmpty($tweak.$_)}) {
-                    continue
-                }
-
-                $tweakType = if (!([string]::IsNullOrEmpty($tweak.Type))) { $tweak.Type.ToUpper() } else { $null }
-
-                $regKeyObject = [RegistryKey]::new($tweak.RegPath, $tweak.Name, $tweakType, $null, $null)
-            }
-
-            if ($backupsEnabled) {
-                $regKeyObject.backupDirectory = $scriptRunBackupDir
-            }
-
-            $setResult = switch ($tweakAction) {
-                'ADD' {$regKeyObject.addToReg()}
-                'DEL' {$regKeyObject.deleteFromReg()}
-            }
-
-            if ($setResult) {
-                $successfulTweaks++
-            }
-        }
-
-        $resultOutput = switch ($successfulTweaks) {
-            0 {'All tweaks were skipped or failed to apply.', 'Red'}
-            {$successfulTweaks -gt 0 -and $successfulTweaks -lt $tweakCount} {"Some tweaks were skipped or failed to apply.", 'Yellow'}
-            {$successfulTweaks -eq $tweakCount} {"Tweaks successfully applied.", 'Green'}
-        }
-
-        Write-Host $resultOutput[0] -ForegroundColor $resultOutput[1]
-    }
+if ($script:RegistryTweaksDisabled -eq $false) {
+    Write-Host "[i] Starting registry tweaks..." -ForegroundColor Blue
+    Import-RegKeys -keyPath "$PSScriptRoot\assets\reg"
 }
 
 # ==================== SET APPROPRIATE POWER PLAN ====================
@@ -206,7 +214,7 @@ if ($registryJSON) {
 # Balanced for X3D, High Performance otherwise.
 # Disable sleep whilst AC powered if target plan is balanced.
 
-Write-Host '[i] Checking power plan...'
+Write-Host '[i] Setting appropriate power plan...' -ForegroundColor Blue
 
 $powerSchemes = & powercfg /list
 
@@ -219,7 +227,7 @@ if ($powerSchemes) {
         $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
     }
     catch {
-        Write-Error "It was not possible to capture the ProcessorNameString"
+        Write-Host "[w] It was not possible to obtain the processor string." -ForegroundColor Yellow
     }
 
     $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
@@ -232,129 +240,87 @@ if ($powerSchemes) {
     if ($desiredSchemeGUID) {
 
         if ($activeSchemeGUID -eq $desiredSchemeGUID) {
-
-            Write-Host "Successfully applied $targetPowerPlan power plan." -ForegroundColor Green
+            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "Successfully applied $targetPowerPlan power plan."
 
         } else {
 
             # Set the desired scheme.
-            Write-Host "Setting active power plan to: $targetPowerPlan" -ForegroundColor Blue
+            Write-Host "[i] Setting active power plan to: $targetPowerPlan" -ForegroundColor Blue
             & powercfg /setactive $desiredSchemeGUID
 
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "Failed to set $targetPowerPlan power plan." -ForegroundColor Red
+                Write-Host "[FAIL] Failed to set $targetPowerPlan power plan."-ForegroundColor Red
             }
 
-            Write-Host "Successfully applied $targetPowerPlan." -ForegroundColor Green
+            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "Successfully applied $targetPowerPlan power plan."
         }
     }
 }
 
 # ==================== ENABLE FEATURES ====================
 
-if ($userIsAdminElevated) {
-    # Apply Windows Firewall rules only outside of Windows Sandbox.
-    if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
-        try {
-            Write-Host "[i] Enabling firewall rules (allow RDP)..."
-            Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-            Write-Host $GENERIC_SUCCESS_MESSAGE -ForegroundColor Green
-        }
-        catch {
-            Write-Host $GENERIC_FAIL_MESSAGE -ForegroundColor Red
-        }
+Write-Host "[i] Processing Windows features..." -ForegroundColor Blue
+
+
+# Apply Windows Firewall rules only outside of Windows Sandbox.
+if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
+    try {
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Write-Host "[OK] " -ForegroundColor Green -NoNewline
+        Write-Host "Allowed RDP in Windows Firewall."
+    }
+    catch {
+        Write-Host "[FAIL]: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
+
 # ==================== REMOVE SHORTCUTS ====================
 
-if ($userIsAdminElevated) {
+$publicShortcuts = @(
+    'Microsoft Edge.lnk'
+)
 
-    $publicShortcuts = @(
-        'Microsoft Edge.lnk'
-    )
+if (@($publicShortcuts).Count -gt 0) {
 
-    if (@($publicShortcuts).Count -gt 0) {
+    Write-Host "[i] Processing Public Desktop shortcuts..." -ForegroundColor Blue
 
-        $publicShortcuts |
-        ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } |
-        Where-Object { (Test-Path $_) -and $_ -match "\.lnk$" } |
-        ForEach-Object {
-            try {
-                $_ | Remove-Item -Force
-                Write-Host "[-] $_" -ForegroundColor Green
-            }
-            catch {
-                Write-Host "Failed to remove `"$_`"" -ForegroundColor Red
-            }
+    $publicShortcuts |
+    ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } |
+    Where-Object { (Test-Path $_) -and $_ -match "\.lnk$" } |
+    ForEach-Object {
+        try {
+            $_ | Remove-Item -Force
+            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "Removed `"$_`""
+        }
+        catch {
+            Write-Host "[FAIL] Failed to remove `"$_`"" -ForegroundColor Red
         }
     }
 }
 
 # ==================== REMOVE ONEDRIVE ====================
 
-Write-Host "[i] Processing OneDrive..."
+Write-Host "[i] Checking for OneDrive..." -ForegroundColor Blue
 
-$oneDriveProcessName = 'OneDrive.exe'
-$oneDriveUserPath = "${env:LOCALAPPDATA}\Microsoft\OneDrive\*\OneDriveSetup.exe"
-$oneDriveProgramFilesPath = "${env:PROGRAMFILES(X86)}\Microsoft OneDrive\*\OneDriveSetup.exe"
-$oneDriveSystemPaths = @(
-    "${env:systemroot}\System32\OneDriveSetup.exe",
-    "${env:systemroot}\SysWOW64\OneDriveSetup.exe"
-)
-
-$oneDriveProcessObject = Get-Process $oneDriveProcessName -ErrorAction SilentlyContinue
-
-if ($oneDriveProcessObject) {
-    Write-Host "OneDrive process was found" -ForegroundColor Yellow
-    $oneDriveProcessObject | ForEach-Object {
-        $_ | Stop-Process -ErrorAction SilentlyContinue
+@(
+    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
+    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
+) | Sort-Object -Unique | Where-Object {Test-Path $_} | ForEach-Object {
+    $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
+    if ($uninstallString){
+        Write-Host "[i] Executing `"$uninstallString`"" -ForegroundColor Blue
+        Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
+        Write-Host "[i] Done."
     }
 }
-
-if ($userIsAdminElevated) {
-
-    foreach ($uninstallPath in $oneDriveSystemPaths) {
-        if (Test-Path $uninstallPath) {
-            Write-Host "Executing: $uninstallPath /uninstall /allusers" -ForegroundColor Blue
-            Start-Process $uninstallPath -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
-        }
-    }
-
-    $oneDriveProgramFiles = Get-ChildItem -Path $oneDriveProgramFilesPath `
-                                -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-
-    if ($oneDriveProgramFiles) {
-        Write-Host "Executing: $($oneDriveProgramFiles.FullName) /uninstall /allusers" -ForegroundColor Blue
-        Start-Process $oneDriveProgramFiles.FullName -ArgumentList '/uninstall /allusers' -PassThru | Wait-Process
-    }
-}
-
-# %localappdata% installer.
-# I've come across it installed here too previously.
-
-if (Test-Path $oneDriveUserPath) {
-    $oneDriveUserPath = Get-ChildItem -Path $oneDriveUserPath `
-                                -Filter OneDriveSetup.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($oneDriveUserPath) {
-        Write-Host "Executing: $($oneDriveUserPath.FullName) /uninstall" -ForegroundColor Blue
-        Start-Process $oneDriveUserPath.FullName -ArgumentList '/uninstall' -PassThru | Wait-Process
-    }
-}
-
-# ==================== BACKUP CLEANUP ====================
-
- # Remove backup directory if no changes were made.
-
- if ($backupsEnabled) {
-    if (!(Get-ChildItem -Path $scriptRunBackupDir -ErrorAction SilentlyContinue)) {
-        Remove-Item -Path $scriptRunBackupDir
-    }
- }
 
 # ==================== RESURRECT EXPLORER ====================
 
-Write-Host '[i] Restarting explorer...'
+Write-Host '[i] Restarting explorer...' -ForegroundColor Blue
 
 Stop-Process -Name explorer -Force
 
@@ -362,9 +328,12 @@ while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     Start-Sleep -Milliseconds 500
 }
 
+Write-Host "[OK] " -NoNewline -ForegroundColor Green
+Write-Host "explorer restarted."
+
 # ==================== APPLY WALLPAPER CHANGES ====================
 
-Write-Host "[i] Applying wallpaper..."
+Write-Host "[i] Applying wallpaper..." -ForegroundColor Blue
 
 $SPI_SETDESKWALLPAPER = 0x0014
 $SPIF_UPDATEINIFILE = 0x01
@@ -379,7 +348,8 @@ while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::
     continue
 }
 
-Write-Host "[i] Refreshing desktop..."
+Write-Host "[i] Refreshing desktop..." -ForegroundColor Blue
+
 [RefreshDesktop]::Refresh()
 
 Write-Host "[i] Done."

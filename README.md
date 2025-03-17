@@ -1,9 +1,12 @@
 # Windows 11 initialisation Tweaks
 This script is a user "initialisation" for fresh Windows installs (after OOBE). It's here to make my life easier with VMs and such.
 
-Items marked <code style="color : red">*</code> require the script to be elevated as Administrator
+**This script requires administrative privileges**
 
 ## Usage
+Execute using Run.bat
+
+Or manually:
 ```
 powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ```
@@ -35,13 +38,13 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Show hidden files.
     * Show extensions for known file types.
     * Open "This PC" by default.
-    * Disable 'Show sync provider notifications'
+    * Disable "Show sync provider notifications"
 
-1. **Disable fast startup**<code style="color : red">*</code>
+1. **Disable fast startup**
 
-1. **Privacy / Annoyances:**<code style="color : red">*</code>
-    * Disable Copilot+ Recall.<code style="color : red">*</code> (Elevation for system-wide context).
-    * Disable 'Store my activity history on this device'.<code style="color : red">*</code> (Elevation for system-wide context).
+1. **Privacy / Annoyances:**
+    * Disable Copilot+ Recall.
+    * Disable "Store my activity history on this device".
     * Disable online search suggestions.
     * Disable app permission to user advertising ID.
     * Disable lock screen "fun facts, tips and tricks" on the lock screen.
@@ -54,23 +57,25 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Let websites show me locally relevant content by accessing my language list".
     * Disable "Let Windows improve Start and Search by tracking app launches".
     * Disable "Improve ink and typing".
-    * Disable "Sending optional diagnostic data". <code style="color : red">*</code>
+    * Disable "Sending optional diagnostic data". 
     * Disable Windows toast suggestions (notifications).
 
     Note: It is not possible to disable optional diagnostic data without admin elevation programmatically even though you can disable it in control panel without. If you can't run this script as admin and want to disable it, you need to do it manually.
 
-1. **Power plan: Set to Balanced for X3D processors, High Performance for all others.**
+1. **Power plan**:
+    * Balanced: X3D processors.
+    * High Performance: Everything else.
 
-1. **Enable RDP** <code style="color : red">*</code>
-    * Change registry settings to enable RDP.<code style="color : red">*</code>
-    * Enable firewall rules for the associated "Remote Desktop" display group.<code style="color : red">*</code>
+1. **Enable RDP** 
+    * Change registry settings to enable RDP.
+    * Enable firewall rules for the associated "Remote Desktop" display group.
 
-1. **Remove the Microsoft Edge shortcut from the Public Desktop** <code style="color : red">*</code>
+1. **Remove the Microsoft Edge shortcut from the Public Desktop** 
 
-1. **Run OneDrive Uninstallers:**<code style="color : red">*</code>
+1. **Run OneDrive Uninstallers:**
     * Run the uninstaller within the %localappdata% folder.
-    * Run the uninstaller within the %programfiles(x86)% folder with `/uninstall /allusers` <code style="color : red">*</code>
-    * Run the uninstaller within the Windows folders with `/uninstall /allusers` <code style="color : red">*</code>
+    * Run the uninstaller within the %programfiles(x86)% folder with `/uninstall /allusers` 
+    * Run the uninstaller within the Windows folders with `/uninstall /allusers` 
 
       Note: Windows will likely install these again.
 

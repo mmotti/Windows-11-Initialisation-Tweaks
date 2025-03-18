@@ -1,6 +1,7 @@
 $script:BackedUpRegistryPaths = @()
 $script:DisableBackups = $false
 $script:RegistryTweaksDisabled = $false
+$script:ScriptRunBackupDir = $null
 
 function Test-IsAdminElevated {
     return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
@@ -48,7 +49,7 @@ function Export-RegKeys {
         [string]$KeyPath
     )
 
-    if ($script:DisableBackups -eq $false -and !(Test-Path -Path $scriptRunBackupDir)) {
+    if ($script:DisableBackups -eq $false -and !(Test-Path -Path $script:ScriptRunBackupDir)) {
         return $false
     }
 
@@ -75,7 +76,7 @@ function Export-RegKeys {
                     $friendlyFileName = "${friendlyFileName}.reg"
                 }
     
-                $result = reg export $keyRegPath "$scriptRunBackupDir\$friendlyFileName" /y 2>&1
+                $result = reg export $keyRegPath "$script:ScriptRunBackupDir\$friendlyFileName" /y 2>&1
     
                 if ($LASTEXITCODE -eq 0) {
                     $script:BackedUpRegistryPaths += $_.Groups[1].Value
@@ -175,13 +176,13 @@ if ($script:DisableBackups -eq $false) {
 
     $backupDir = "$PSScriptRoot\backups"
     $scriptRunID = Get-date -Format 'dd-MM-yy_HH-mm-ss'
-    $scriptRunBackupDir = "$backupDir\$scriptRunID"
+    $script:ScriptRunBackupDir = "$backupDir\$scriptRunID"
 
     # Create the backup dir.
 
     $backupDirs = @(
         $backupDir,
-        $scriptRunBackupDir
+        $script:ScriptRunBackupDir
     )
 
     foreach ($dir in $backupDirs) {
@@ -197,7 +198,7 @@ if ($script:DisableBackups -eq $false) {
             }
 
             Write-Host "[OK] " -NoNewline -ForegroundColor Green
-            Write-Host "Registry backup directory initialised: `"$scriptRunBackupDir`""
+            Write-Host "Registry backup directory initialised: `"$script:ScriptRunBackupDir`""
         }
     }
 }

@@ -59,7 +59,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Sending optional diagnostic data". 
     * Disable Windows toast suggestions (notifications).
 
-1. **Power plan**:
+1. **Set the Power plan**:
     * Balanced: X3D processors.
     * High Performance: Everything else.
 

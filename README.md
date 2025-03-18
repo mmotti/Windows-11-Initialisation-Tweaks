@@ -1,7 +1,7 @@
 # Windows 11 initialisation Tweaks
 This script is a user "initialisation" for fresh Windows installs (after OOBE). It's here to make my life easier with VMs and such.
 
-**This script requires administrative privileges**
+**This script requires administrative privileges**.
 
 ![Demonstration of script running.](assets/img/demo.gif)
 

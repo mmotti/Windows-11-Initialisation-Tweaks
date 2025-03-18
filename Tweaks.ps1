@@ -312,7 +312,7 @@ Write-Host "[i] Checking for OneDrive..." -ForegroundColor Blue
 ) | Sort-Object -Unique | Where-Object {Test-Path $_} | ForEach-Object {
     $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
     if ($uninstallString){
-        Write-Host "[i] Executing `"$uninstallString`"" -ForegroundColor Blue
+        Write-Host "[i] Executing: $uninstallString" -ForegroundColor Blue
         Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
         Write-Host "[i] Done."
     }

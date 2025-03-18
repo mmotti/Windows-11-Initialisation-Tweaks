@@ -25,7 +25,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 1. **Taskbar:**
     * Align to the left.
     * Hide the Copilot button.
-    * ~~Hide Widgets button.~~ M$ has disabled write access to this registry key. Sigh.
+    * Disable Widgets.
     * Hide Search button.
     * Select the far corner of the taskbar to show the desktop.
 

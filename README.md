@@ -71,7 +71,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Remove the Microsoft Edge shortcut from the Public Desktop** 
 
-1. **Run OneDrive:**
+1. **Remove OneDrive:**
     * Scan registry for UninstallStrings and run the uninstallers.
     * Remove "OneDriveSetup" from the default user's registry hive (HKEY_USERS\Default\Software\Microsoft\Windows\CurrentVersion\Run).
 

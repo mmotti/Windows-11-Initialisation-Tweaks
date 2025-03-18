@@ -3,6 +3,8 @@ This script is a user "initialisation" for fresh Windows installs (after OOBE). 
 
 **This script requires administrative privileges**
 
+![Demonstration of script running.](assets/img/demo.gif)
+
 ## Usage
 Execute using Run.bat
 

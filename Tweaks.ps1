@@ -247,19 +247,17 @@ if ($powerSchemes) {
         if ($activeSchemeGUID -eq $desiredSchemeGUID) {
             Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
             Write-Host "Successfully applied $targetPowerPlan power plan."
-
         } else {
-
             # Set the desired scheme.
             Write-Host "[i] Setting active power plan to: $targetPowerPlan" -ForegroundColor Blue
             & powercfg /setactive $desiredSchemeGUID
 
             if ($LASTEXITCODE -ne 0) {
                 Write-Host "`t$script:FailChar Failed to set $targetPowerPlan power plan."-ForegroundColor Red
+            } else {
+                Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+                Write-Host "Successfully applied $targetPowerPlan power plan."
             }
-
-            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-            Write-Host "Successfully applied $targetPowerPlan power plan."
         }
     }
 }

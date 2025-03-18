@@ -309,19 +309,26 @@ if (@($publicShortcuts).Count -gt 0) {
 
 # Standard OneDrive entries.
 
-Write-Host "[i] Checking for OneDrive..." -ForegroundColor Blue
+Write-Host "[i] Checking for OneDrive installations..." -ForegroundColor Blue
 
-@(
+$oneDriveInstallations = @(
     "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
     "HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
     "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
     "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
-) | Sort-Object -Unique | Where-Object {Test-Path $_} | ForEach-Object {
-    $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
-    if ($uninstallString){
-        Write-Host "[i] Executing: $uninstallString" -ForegroundColor Blue
-        Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
+) | Sort-Object -Unique | Where-Object {Test-Path $_}
+
+if ($oneDriveInstallations) {
+    $oneDriveInstallations | ForEach-Object {
+        $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
+        if ($uninstallString){
+            Write-Host "[i] Executing: $uninstallString" -ForegroundColor Blue
+            Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
+        }
     }
+} else {
+     Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+     Write-Host "No OneDrive installations detected."
 }
 
 # Default user registry hive.
@@ -357,7 +364,7 @@ try {
         }
     } else {
         Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-        Write-Host "No $oneDriveKeyValue detected in the default user's registry hive."
+        Write-Host "No `"$oneDriveKeyValue`" detected in the default user's registry hive."
     }
     
 }

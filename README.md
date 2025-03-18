@@ -32,7 +32,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 1. **Desktop icons:**
     * Show "This PC" on the desktop.
     * Set desktop icons to small
-    * ~~Set the icon layout that I like (small icons & sort by item type).~~
 
 1. **File Explorer:**
     * Hide recent files from Quick Access.
@@ -75,11 +74,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 1. **Remove the Microsoft Edge shortcut from the Public Desktop** 
 
 1. **Run OneDrive Uninstallers:**
-    * Run the uninstaller within the %localappdata% folder.
-    * Run the uninstaller within the %programfiles(x86)% folder with `/uninstall /allusers` 
-    * Run the uninstaller within the Windows folders with `/uninstall /allusers` 
-
-      Note: Windows will likely install these again.
 
 ## Usage with Windows Sandbox
 You can use this file to initialise the Windows Sandbox too!

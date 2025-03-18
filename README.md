@@ -59,8 +59,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Sending optional diagnostic data". 
     * Disable Windows toast suggestions (notifications).
 
-    Note: It is not possible to disable optional diagnostic data without admin elevation programmatically even though you can disable it in control panel without. If you can't run this script as admin and want to disable it, you need to do it manually.
-
 1. **Power plan**:
     * Balanced: X3D processors.
     * High Performance: Everything else.

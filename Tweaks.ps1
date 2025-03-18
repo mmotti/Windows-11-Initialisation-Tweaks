@@ -314,7 +314,6 @@ Write-Host "[i] Checking for OneDrive..." -ForegroundColor Blue
     if ($uninstallString){
         Write-Host "[i] Executing: $uninstallString" -ForegroundColor Blue
         Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
-        Write-Host "[i] Done."
     }
 }
 

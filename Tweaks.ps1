@@ -351,7 +351,6 @@ try {
             $oneDriveDefaultUserSetup | Remove-ItemProperty -Name $oneDriveKeyValue -Force
             Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
             Write-Host "Registry key removed."
-            
         }
         catch {
             throw "Failed to remove $oneDriveKeyValue"

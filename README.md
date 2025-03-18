@@ -20,8 +20,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     
 1. **Apply the Windows(dark) theme.**
 
-    Windows is a little particular with the wallpaper; sometimes it needs a reboot or multiple script runs.
-
 1. **Taskbar:**
     * Align to the left.
     * Hide the Copilot button.
@@ -47,7 +45,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable Copilot+ Recall.
     * Disable "Store my activity history on this device".
     * Disable online search suggestions.
-    * Disable app permission to user advertising ID.
+    * Disable app permission to use advertising ID.
     * Disable lock screen "fun facts, tips and tricks" on the lock screen.
     * Disable "Get tips and suggestions when using Windows" notifications.
     * Disable "Show me suggested content in the Settings app".

@@ -307,16 +307,70 @@ if (@($publicShortcuts).Count -gt 0) {
 
 # ==================== REMOVE ONEDRIVE ====================
 
+# Standard OneDrive entries.
+
 Write-Host "[i] Checking for OneDrive..." -ForegroundColor Blue
 
 @(
     "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
-    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
+    "HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
+    "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
+    "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
 ) | Sort-Object -Unique | Where-Object {Test-Path $_} | ForEach-Object {
     $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
     if ($uninstallString){
         Write-Host "[i] Executing: $uninstallString" -ForegroundColor Blue
         Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
+    }
+}
+
+# Default user registry hive.
+
+try {
+    
+    $oneDriveKeyValue = "OneDriveSetup"
+    $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
+
+    Write-Host "[i] Checking the default user's registry hive for $oneDriveKeyValue..." -ForegroundColor Blue
+    
+    $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+    
+    $null = reg load HKU\TempDefault C:\users\Default\NTUSER.DAT 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to load the default user's registry hive."
+    }
+
+    $hiveLoaded = $true
+
+    $oneDriveDefaultUserSetup = Get-ItemProperty -Path $defaultUserRunPath -Name $oneDriveKeyValue -ErrorAction SilentlyContinue
+
+    if ($oneDriveDefaultUserSetup) {
+        try {
+            Write-Host "[i] Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "HKU:", "HKEY_USERS")" -ForegroundColor Blue
+            $oneDriveDefaultUserSetup | Remove-ItemProperty -Name $oneDriveKeyValue -Force
+            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+            Write-Host "Registry key removed."
+            
+        }
+        catch {
+            throw "Failed to remove $oneDriveKeyValue"
+        }
+    } else {
+        Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+        Write-Host "No $oneDriveKeyValue detected in the default user's registry hive."
+    }
+    
+}
+catch {
+    Write-Host "`t$script:FailChar  $_" -ForegroundColor Red
+}
+finally {
+    if ($hkuDrive) {
+        Remove-PSDrive -Name HKU
+    }
+    if ($hiveLoaded) {
+        $null = reg unload HKU\TempDefault 2>&1
     }
 }
 

@@ -2,6 +2,9 @@ $script:BackedUpRegistryPaths = @()
 $script:DisableBackups = $false
 $script:RegistryTweaksDisabled = $false
 $script:ScriptRunBackupDir = $null
+$script:OKChar = [char]0x2714
+$script:FailChar = [char]0x2716
+$script:WarningChar = [char]0x26A0
 
 function Test-IsAdminElevated {
     return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
@@ -24,8 +27,8 @@ function Import-RegKeys {
 
         if ($script:DisableBackups -eq $false) {
             if (!(Export-RegKeys -KeyPath $key.FullName)) {
-                Write-Host "[FAIL] " -NoNewline -ForegroundColor Red
-                Write-Host "$($key.Name): Failed to create registry backup."
+                Write-Host "`t$script:FailChar " -NoNewline -ForegroundColor Red
+                Write-Host "`t$($key.Name): Failed to create registry backup."
                 continue
             }
         }
@@ -33,9 +36,9 @@ function Import-RegKeys {
         $result = reg import $key.FullName 2>&1
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "[FAIL] $($key.Name): $($result -replace '^ERROR:\s*', '')" -ForegroundColor Red
+            Write-Host "`t$script:FailChar $($key.Name): $($result -replace '^ERROR:\s*', '')" -ForegroundColor Red
         } else {
-            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
             Write-Host $key.Name
         }
     }
@@ -191,14 +194,15 @@ if ($script:DisableBackups -eq $false) {
                 New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
             }
             catch {
-                Write-Host "[FAIL] Unable to create path: `"$dir`"." -ForegroundColor Red
-                Write-Host "[w] Registry tweaks will be skipped." -ForegroundColor Yellow
+                Write-Host "`t$script:FailChar Unable to create path: `"$dir`"." -ForegroundColor Red
+                Write-Host "`t$script:WarningChar Registry tweaks will be skipped." -ForegroundColor Yellow
                 $script:RegistryTweaksDisabled = $true
                 break
             }
 
-            Write-Host "[OK] " -NoNewline -ForegroundColor Green
-            Write-Host "Registry backup directory initialised: `"$script:ScriptRunBackupDir`""
+            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+            Write-Host "Registry backup directory initialised:"
+            Write-Host "`t`t`"$script:ScriptRunBackupDir`""
         }
     }
 }
@@ -228,7 +232,7 @@ if ($powerSchemes) {
         $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
     }
     catch {
-        Write-Host "[w] It was not possible to obtain the processor string." -ForegroundColor Yellow
+        Write-Host "`t$script:WarningChar It was not possible to obtain the processor string." -ForegroundColor Yellow
     }
 
     $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
@@ -241,7 +245,7 @@ if ($powerSchemes) {
     if ($desiredSchemeGUID) {
 
         if ($activeSchemeGUID -eq $desiredSchemeGUID) {
-            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
             Write-Host "Successfully applied $targetPowerPlan power plan."
 
         } else {
@@ -251,10 +255,10 @@ if ($powerSchemes) {
             & powercfg /setactive $desiredSchemeGUID
 
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "[FAIL] Failed to set $targetPowerPlan power plan."-ForegroundColor Red
+                Write-Host "`t$script:FailChar Failed to set $targetPowerPlan power plan."-ForegroundColor Red
             }
 
-            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
             Write-Host "Successfully applied $targetPowerPlan power plan."
         }
     }
@@ -269,11 +273,11 @@ Write-Host "[i] Processing Windows features..." -ForegroundColor Blue
 if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
     try {
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Write-Host "[OK] " -ForegroundColor Green -NoNewline
+        Write-Host "`t$script:OKChar " -ForegroundColor Green -NoNewline
         Write-Host "Allowed RDP in Windows Firewall."
     }
     catch {
-        Write-Host "[FAIL]: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "`t$script:FailChar: $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 
@@ -294,11 +298,11 @@ if (@($publicShortcuts).Count -gt 0) {
     ForEach-Object {
         try {
             $_ | Remove-Item -Force
-            Write-Host "[OK] " -NoNewline -ForegroundColor Green
+            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
             Write-Host "Removed `"$_`""
         }
         catch {
-            Write-Host "[FAIL] Failed to remove `"$_`"" -ForegroundColor Red
+            Write-Host "`t$script:FailChar Failed to remove `"$_`"" -ForegroundColor Red
         }
     }
 }
@@ -328,8 +332,8 @@ while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     Start-Sleep -Milliseconds 500
 }
 
-Write-Host "[OK] " -NoNewline -ForegroundColor Green
-Write-Host "explorer restarted."
+Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+Write-Host "Explorer restarted."
 
 # ==================== APPLY WALLPAPER CHANGES ====================
 
@@ -339,7 +343,15 @@ $SPI_SETDESKWALLPAPER = 0x0014
 $SPIF_UPDATEINIFILE = 0x01
 $SPIF_SENDCHANGE = 0x02
 
-[User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE) | Out-Null
+$result = [User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
+
+if ($result) {
+    Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
+    Write-Host "Wallpaper applied."
+} else {
+    Write-Host "`t$script:FailChar " -NoNewline -ForegroundColor Red
+    Write-Host "Failed to apply wallpaper."
+}
 
 # ==================== REFRESH DESKTOP ====================
 

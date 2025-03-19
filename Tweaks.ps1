@@ -21,7 +21,7 @@ function Import-RegKeys {
         return
     }
 
-    $regKeys = Get-ChildItem -Path $keyPath -Filter "*.reg" -ErrorAction SilentlyContinue
+    $regKeys = Get-ChildItem -Path $keyPath -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
     foreach ($key in $regKeys) {
 

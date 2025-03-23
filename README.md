@@ -73,6 +73,9 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Scan registry for UninstallStrings and run the uninstallers.
     * Remove "OneDriveSetup" from the default user's registry hive (HKEY_USERS\Default\Software\Microsoft\Windows\CurrentVersion\Run).
 
+1. **Windows Update**
+    * Disable "Delivery Optimisation" (Don't allow downloads from other devices).
+
 ## Usage with Windows Sandbox
 You can use this file to initialise the Windows Sandbox too!
 

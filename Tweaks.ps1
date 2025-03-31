@@ -18,7 +18,7 @@ function Import-RegKeys {
         return
     }
 
-    $regKeys = Get-ChildItem -Path $keyPath -Include *.reg -Recurse -ErrorAction SilentlyContinue | 
+    $regKeys = Get-ChildItem -Path $keyPath -Include *.reg -Recurse -ErrorAction SilentlyContinue |
                Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
 
     foreach ($key in $regKeys) {
@@ -58,25 +58,25 @@ function Export-RegKeys {
 
         $pattern = '\[(HKEY_[^\]]+)\]'
         $patternMatches = [regex]::Matches($regFileContents, $pattern)
-    
+
         $patternMatches | ForEach-Object {
-    
+
             $keyRegPath = $_.Groups[1].Value
-    
+
             if($keyRegPath -notin $script:BackedUpRegistryPaths) {
-    
+
                 $friendlyFileName = $keyRegPath -replace '^([A-Z]{3,4}):\\|\\', '$1-'
-    
+
                 $fileNameParts = $friendlyFileName -split '-'
-    
+
                 if ($fileNameParts.Count -ge 4) {
                     $friendlyFileName = "$($fileNameParts[0..1] -join '-')...$($fileNameParts[-2..-1] -join '-').reg"
                 } else {
                     $friendlyFileName = "${friendlyFileName}.reg"
                 }
-    
+
                 $result = reg export $keyRegPath "$script:ScriptRunBackupDir\$friendlyFileName" /y 2>&1
-    
+
                 if ($LASTEXITCODE -eq 0) {
                     $script:BackedUpRegistryPaths += $_.Groups[1].Value
                     return $true
@@ -124,7 +124,7 @@ function Write-Status {
         if ($Indent -gt 0) {
             Write-Host ("`t" * $Indent) -NoNewline
         }
-        
+
         if ($char) {
             Write-Host $char -ForegroundColor $colour -NoNewline
             $Message = " $Message"
@@ -147,7 +147,7 @@ if (!(Test-IsAdminElevated)) {
         $cmd = "powershell"
         $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
     }
-    
+
     Start-Process $cmd -ArgumentList $arguments -Verb RunAs
     exit
 }
@@ -445,14 +445,14 @@ if ($oneDriveInstallations) {
 # Default user registry hive.
 
 try {
-    
+
     $oneDriveKeyValue = "OneDriveSetup"
     $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
 
     Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
-    
+
     $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
-    
+
     $null = reg load HKU\TempDefault C:\users\Default\NTUSER.DAT 2>&1
 
     if ($LASTEXITCODE -ne 0) {
@@ -475,7 +475,7 @@ try {
     } else {
         Write-Status -Status OK -Message "No `"$oneDriveKeyValue`" detected in the default user's registry hive." -Indent 1
     }
-    
+
 }
 catch {
     Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1

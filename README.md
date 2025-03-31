@@ -66,6 +66,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 1. **Set the Power plan:**
     * Balanced: X3D processors.
     * High Performance: Everything else.
+    * Disable sleep mode if no battery is detected.
 
 1. **Enable RDP:**
     * Change registry settings to enable RDP.

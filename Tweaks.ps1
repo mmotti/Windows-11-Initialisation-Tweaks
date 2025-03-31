@@ -111,7 +111,7 @@ function Write-Status {
         $okPrefix = "[OK]"
         $failPrefix = "[FAIL]"
         $warningPrefix = "[WARN]"
-        $actionPrefix = "[>]"
+        $actionPrefix = "[>>]"
         $infoPrefix = "[i]"
 
         switch ($Status.ToUpperInvariant()) {

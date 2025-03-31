@@ -34,7 +34,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Desktop icons:**
     * Show "This PC" on the desktop.
-    * Set desktop icons to small
+    * Set desktop icons to small.
 
 1. **File Explorer:**
     * Hide recent files from Quick Access.
@@ -42,7 +42,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Show hidden files.
     * Show extensions for known file types.
     * Open "This PC" by default.
-    * Disable "Show sync provider notifications"
+    * Disable "Show sync provider notifications".
 
 1. **Disable fast startup**
 

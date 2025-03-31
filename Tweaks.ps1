@@ -410,7 +410,7 @@ if ($keyArray) {
             throw
         }
     
-        Write-Status -Status ACTION -Message "Importing $notepadConfig" -Indent 1
+        Write-Status -Status ACTION -Message "Importing Notepad tweaks (current user)..." -Indent 1
         Import-RegKeys -KeyArray $keyArray    
     }
     catch {
@@ -562,4 +562,5 @@ Write-Status -Status ACTION -Message "Refreshing desktop..."
 [RefreshDesktop]::Refresh()
 
 Write-Host
-Write-Status -Status OK -Message "Script execution complete."
+Write-Status -Status OK -Message "Script execution complete. Press any key to exit..."
+$null = $host.UI.RawUI.ReadKey("NoEcho, IncludeKeyDown")

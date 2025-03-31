@@ -342,7 +342,6 @@ try {
                             Write-Status -Status OK -Message "Sleep mode disabled." -Indent 1
                         } else {
                             Write-Status -Status FAIL -Message "Unable to disable sleep mode." -Indent 1
-                            throw
                         }
                     }
                 }

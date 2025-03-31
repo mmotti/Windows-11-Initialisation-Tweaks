@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_USERS\TempUser\LocalState]
+"RewriteEnabled"=hex(5f5e10b):00,b5,0e,fa,e9,d0,a1,db,01
+

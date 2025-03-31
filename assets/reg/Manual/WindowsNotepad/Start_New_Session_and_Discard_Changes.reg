@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_USERS\TempUser\LocalState]
+"GhostFile"=hex(5f5e10b):00,61,c9,7d,3a,5a,9f,db,01
+

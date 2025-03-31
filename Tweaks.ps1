@@ -245,6 +245,7 @@ if ($script:DisableBackups -eq $false) {
 }
 
 # ==================== STOP EXPLORER ====================
+
 $explorerStopSuccess = $false
 
 Write-Status -Status ACTION -Message "Stopping explorer..."

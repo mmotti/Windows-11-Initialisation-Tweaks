@@ -333,7 +333,6 @@ if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
     }
 }
 
-
 # ==================== REMOVE SHORTCUTS ====================
 
 $publicShortcuts = @(

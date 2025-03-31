@@ -525,10 +525,16 @@ if ($explorerStopSuccess) {
     Stop-Process -Name explorer -Force
 }
 
-Write-Status -Status ACTION "Waiting for explorer process..." -Indent 1
+$getExplorerProcess = {Get-Process -Name "explorer" -ErrorAction SilentlyContinue}
 
-while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
-    Start-Sleep -Milliseconds 500
+if (!(& $getExplorerProcess)) {
+    
+    Write-Status -Status ACTION "Waiting for explorer process..." -Indent 1
+
+    while (!(& $getExplorerProcess)) {
+        Start-Sleep -Milliseconds 500
+    }
+
 }
 
 Write-Status -Status OK -Message "Explorer restarted." -Indent 1

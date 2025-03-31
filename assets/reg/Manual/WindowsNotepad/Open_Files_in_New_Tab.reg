@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_USERS\TempUser\LocalState]
+"OpenFile"=hex(5f5e104):00,00,00,00,90,1d,c6,09,d8,a1,db,01
+

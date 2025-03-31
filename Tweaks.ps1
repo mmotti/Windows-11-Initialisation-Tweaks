@@ -11,17 +11,10 @@ function Test-IsAdminElevated {
 function Import-RegKeys {
     param (
         [ValidateNotNullOrEmpty()]
-        [string]$keyPath
+        [array]$KeyArray
     )
 
-    if (!(Test-Path -Path $keyPath -PathType Container)) {
-        return
-    }
-
-    $regKeys = Get-ChildItem -Path $keyPath -Include *.reg -Recurse -ErrorAction SilentlyContinue |
-               Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
-
-    foreach ($key in $regKeys) {
+    foreach ($key in $KeyArray) {
 
         if ($script:DisableBackups -eq $false) {
             if (!(Export-RegKeys -KeyPath $key.FullName)) {
@@ -268,7 +261,13 @@ if (& $getExplorerProcess) {
 
 if ($script:RegistryTweaksDisabled -eq $false) {
     Write-Status -Status ACTION -Message "Starting registry tweaks..."
-    Import-RegKeys -keyPath "$PSScriptRoot\assets\reg"
+
+    $keyArray = Get-ChildItem -Path "$PSScriptRoot\assets\reg" -Include *.reg -Recurse -ErrorAction SilentlyContinue |
+    Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
+
+    if ($keyArray) {
+        Import-RegKeys -KeyArray $keyArray
+    }
 }
 
 # ==================== SET APPROPRIATE POWER PLAN ====================
@@ -359,81 +358,76 @@ if (@($publicShortcuts).Count -gt 0) {
 
 # ==================== NOTEPAD SETTINGS (CURRENT USER) ====================
 
-$notepadHiveLoaded = $false
+$keyArray = Get-ChildItem -Path (Join-Path $PSScriptRoot "assets\reg\Manual\WindowsNotepad") -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
-try {
+if ($keyArray) {
 
-    Write-Status -Status ACTION -Message "Checking for Notepad..."
+    $notepadHiveLoaded = $false
 
-    $packageName = "Microsoft.WindowsNotepad"
-    $appxPackage = Get-AppxPackage -Name $packageName -ErrorAction SilentlyContinue
+    try {
+    
+        Write-Status -Status ACTION -Message "Checking for Notepad..."
+    
+        $packageName = "Microsoft.WindowsNotepad"
+        $appxPackage = Get-AppxPackage -Name $packageName -ErrorAction SilentlyContinue
+    
+        if (!$appxPackage) {
+            Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
+            throw
+        }
+        Write-Status -Status OK -Message "Notepad is installed." -Indent 1
+    
+        $notepadHive = Join-Path $env:LOCALAPPDATA "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
 
-    if (!$appxPackage) {
-        Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
-        throw
-    }
-    Write-Status -Status OK -Message "Notepad is installed." -Indent 1
-
-    $notepadHive = Join-Path $env:LOCALAPPDATA "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
-    $notepadConfig = Join-Path $PSScriptRoot "assets\reg\Manual\WindowsNotepad\LocalState.reg"
-
-    $notepadHive, $notepadConfig | ForEach-Object {
-        if (!(Test-Path -Path $_ -PathType Leaf)) {
+        if (!(Test-Path -Path $notepadHive)) {
             Write-Status -Status FAIL -Message "Path not found: $_" -Indent 1
             throw
         }
+        
+        Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
+    
+        $notepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
+    
+        if (& $notepadProcess) {
+    
+            Write-Status -Status WARN "Please close Notepad to continue (ALT+TAB to the window)." -Indent 1
+    
+            while (& $notepadProcess) {
+                Start-Sleep -Milliseconds 500
+            }
+        }
+    
+        Write-Status -Status OK -Message "Notepad process killed." -Indent 1
+    
+        Write-Status -Status ACTION -Message "Loading Notepad registry hive: `"$notepadHive`"" -Indent 1
+        $result = reg load HKU\TempUser $notepadHive 2>&1
+    
+        if ($LASTEXITCODE -eq 0) {
+            $notepadHiveLoaded = $true
+            Write-Status -Status OK -Message "Hive loaded." -Indent 1
+        } else {
+            Write-Status -Status FAIL -Message "Failed to load hive."
+            throw
+        }
+    
+        Write-Status -Status ACTION -Message "Importing $notepadConfig" -Indent 1
+        Import-RegKeys -KeyArray $keyArray    
     }
-
-    Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
-
-    $notepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
-
-    if (& $notepadProcess) {
-
-        Write-Status -Status ACTION -Message "Killing Notepad processes..." -Indent 1
-        (& $notepadProcess) | ForEach-Object {$_ | Stop-Process -Force}
-
-        while (& $notepadProcess) {
-            Start-Sleep -Milliseconds 500
+    catch {
+        if ($_.Exception.Message -ne "ScriptHalted") {
+            Write-Host $_.Exception.Message
         }
     }
-
-    Write-Status -Status OK -Message "Notepad process killed." -Indent 1
-
-    Write-Status -Status ACTION -Message "Loading Notepad registry hive: `"$notepadHive`"" -Indent 1
-    $result = reg load HKU\TempUser $notepadHive 2>&1
-
-    if ($LASTEXITCODE -eq 0) {
-        $notepadHiveLoaded = $true
-        Write-Status -Status OK -Message "Hive loaded." -Indent 1
-    } else {
-        Write-Status -Status FAIL -Message "Failed to load hive."
-        throw
-    }
-
-    Write-Status -Status ACTION -Message "Importing $notepadConfig" -Indent 1
-    $result = reg import $notepadConfig 2>&1
-
-    if ($LASTEXITCODE -eq 0) {
-        Write-Status -Status OK -Message "Settings successfully imported." -Indent 1
-    } else {
-        Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received during the import process." -Indent 1
-    }
-}
-catch {
-    if ($_.Exception.Message -ne "ScriptHalted") {
-        Write-Host $_.Exception.Message
-    }
-}
-
-finally {
-    if ($notepadHiveLoaded) {
-        Write-Status -Status ACTION -Message "Unloading Notepad registry hive..." -Indent 1
-        $result = reg unload HKU\TempUser 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-Status -Status OK -Message "Hive unloaded." -Indent 1
-        } else {
-            Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received when unloading hive." -indent 1
+    
+    finally {
+        if ($notepadHiveLoaded) {
+            Write-Status -Status ACTION -Message "Unloading Notepad registry hive..." -Indent 1
+            $result = reg unload HKU\TempUser 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                Write-Status -Status OK -Message "Hive unloaded." -Indent 1
+            } else {
+                Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received when unloading hive." -indent 1
+            }
         }
     }
 }

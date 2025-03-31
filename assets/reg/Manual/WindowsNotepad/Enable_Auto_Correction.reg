@@ -1,0 +1,5 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_USERS\TempUser\LocalState]
+"AutoCorrect"=hex(5f5e10b):01,89,a2,ea,12,e8,a1,db,01
+

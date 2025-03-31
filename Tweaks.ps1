@@ -26,9 +26,9 @@ function Import-RegKeys {
                     continue
                 }
             }
-    
+
             $result = reg import $key.FullName 2>&1
-    
+
             if ($LASTEXITCODE -ne 0) {
                 Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
             } else {
@@ -284,43 +284,78 @@ if ($script:RegistryTweaksDisabled -eq $false) {
 
 Write-Status -Status ACTION -Message "Setting appropriate power plan..."
 
-$powerSchemes = & powercfg /list
+try {
 
-if ($powerSchemes) {
+    $powerSchemes = powercfg /list
 
-    $processorString = $null
-    $x3dCPU = $false
+    if ($powerSchemes) {
 
-    try {
-        $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
-    }
-    catch {
-        Write-Status -Status WARN -Message "It was not possible to obtain the processor string." -Indent 1
-    }
+        $targetPlanActive = $false
+        $processorString = $null
+        $x3dCPU = $false
 
-    $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
-    $targetPowerPlan = if ($x3dCPU) { "Balanced" } else { "High performance" }
+        try {
+            $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
+        }
+        catch {
+            Write-Status -Status WARN -Message "It was not possible to obtain the processor string." -Indent 1
+        }
 
-    $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
-    $desiredSchemeGUID = [regex]::Match($powerSchemes, "Power Scheme GUID: ([a-f0-9-]+)\s+\($targetPowerPlan\)").Groups[1].Value
+        $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
+        $targetPowerPlan = if ($x3dCPU) { "Balanced" } else { "High performance" }
 
-    # If the desired GUID was matched and the active power scheme is not our desired scheme.
-    if ($desiredSchemeGUID) {
+        $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
+        $desiredSchemeGUID = [regex]::Match($powerSchemes, "Power Scheme GUID: ([a-f0-9-]+)\s+\($targetPowerPlan\)").Groups[1].Value
 
-        if ($activeSchemeGUID -eq $desiredSchemeGUID) {
-            Write-Status -Status OK -Message "Successfully applied $targetPowerPlan power plan." -Indent 1
-        } else {
-            # Set the desired scheme.
-            Write-Status -Status ACTION -Message "Setting active power plan to: $targetPowerPlan" -Indent 1
-            & powercfg /setactive $desiredSchemeGUID
-
-            if ($LASTEXITCODE -ne 0) {
-                Write-Status -Status FAIL -Message "Failed to set $targetPowerPlan power plan." -Indent 1
-            } else {
+        # If the desired GUID was matched in the powercfg output.
+        if ($desiredSchemeGUID) {
+            # The current scheme is the desired scheme.
+            if ($activeSchemeGUID -eq $desiredSchemeGUID) {
+                $targetPlanActive = $true
                 Write-Status -Status OK -Message "Successfully applied $targetPowerPlan power plan." -Indent 1
+            # The current scheme is not the desired scheme.
+            } else {
+                Write-Status -Status ACTION -Message "Setting active power plan to: $targetPowerPlan" -Indent 1
+                powercfg /setactive $desiredSchemeGUID
+
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Status -Status FAIL -Message "Failed to set $targetPowerPlan power plan." -Indent 1
+                    throw
+                } else {
+                    $targetPlanActive = $true
+                    Write-Status -Status OK -Message "Successfully applied $targetPowerPlan power plan." -Indent 1
+                }
+            }
+
+            if ($targetPlanActive) {
+                
+                # Disable sleep if the system does not have a battery (hopefully only targeting desktops).
+                try {
+
+                    $hasBattery = Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop
+
+                    if ($null -eq $hasBattery) {
+
+                        powercfg /change standby-timeout-ac 0
+
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Status -Status OK -Message "Sleep mode disabled." -Indent 1
+                        } else {
+                            Write-Status -Status FAIL -Message "Unable to disable sleep mode." -Indent 1
+                            throw
+                        }
+                    }
+                }
+                catch {
+                    Write-Status -Status FAIL -Message "CimInstance query for battery detection failed."
+                    throw
+                }
             }
         }
     }
+}
+catch {
+    Write-Status -Status FAIL -Message "An error occurred whilst tweaking the power plan." -Indent 1
 }
 
 # ==================== ENABLE FEATURES ====================
@@ -372,43 +407,43 @@ if ($keyArray) {
     $notepadHiveLoaded = $false
 
     try {
-    
+
         Write-Status -Status ACTION -Message "Checking for Notepad..."
-    
+
         $packageName = "Microsoft.WindowsNotepad"
         $appxPackage = Get-AppxPackage -Name $packageName -ErrorAction SilentlyContinue
-    
+
         if (!$appxPackage) {
             Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
             throw
         }
         Write-Status -Status OK -Message "Notepad is installed." -Indent 1
-    
+
         $notepadHive = Join-Path $env:LOCALAPPDATA "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
 
         if (!(Test-Path -Path $notepadHive)) {
             Write-Status -Status FAIL -Message "Path not found: $_" -Indent 1
             throw
         }
-        
+
         Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
-    
+
         $notepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
-    
+
         if (& $notepadProcess) {
-    
+
             Write-Status -Status WARN "Please close Notepad to continue (ALT+TAB to the window)." -Indent 1
-    
+
             while (& $notepadProcess) {
                 Start-Sleep -Milliseconds 500
             }
         }
-    
+
         Write-Status -Status OK -Message "Notepad process killed." -Indent 1
-    
+
         Write-Status -Status ACTION -Message "Loading Notepad registry hive: `"$notepadHive`"" -Indent 1
         $result = reg load HKU\TempUser $notepadHive 2>&1
-    
+
         if ($LASTEXITCODE -eq 0) {
             $notepadHiveLoaded = $true
             Write-Status -Status OK -Message "Hive loaded." -Indent 1
@@ -416,16 +451,16 @@ if ($keyArray) {
             Write-Status -Status FAIL -Message "Failed to load hive."
             throw
         }
-    
+
         Write-Status -Status ACTION -Message "Importing Notepad tweaks (current user)..." -Indent 1
-        Import-RegKeys -KeyArray $keyArray    
+        Import-RegKeys -KeyArray $keyArray
     }
     catch {
         if ($_.Exception.Message -ne "ScriptHalted") {
             Write-Host $_.Exception.Message
         }
     }
-    
+
     finally {
         if ($notepadHiveLoaded) {
             Write-Status -Status ACTION -Message "Unloading Notepad registry hive..." -Indent 1
@@ -531,7 +566,7 @@ if ($explorerStopSuccess) {
 }
 
 if (!(& $getExplorerProcess)) {
-    
+
     Write-Status -Status ACTION "Waiting for explorer process..." -Indent 1
 
     while (!(& $getExplorerProcess)) {

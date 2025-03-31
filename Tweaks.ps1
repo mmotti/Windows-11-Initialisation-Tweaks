@@ -245,18 +245,23 @@ if ($script:DisableBackups -eq $false) {
 }
 
 # ==================== STOP EXPLORER ====================
-
+$getExplorerProcess = {Get-Process -Name "explorer" -ErrorAction SilentlyContinue}
 $explorerStopSuccess = $false
 
-Write-Status -Status ACTION -Message "Stopping explorer..."
+if (& $getExplorerProcess) {
 
-$result = taskkill.exe /im explorer.exe /f 2>&1
+    Write-Status -Status ACTION -Message "Stopping explorer..."
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Status -Status OK -Message "Explorer stopped." -Indent 1
-    $explorerStopSuccess = $true
+    $result = taskkill.exe /im explorer.exe /f 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Status -Status OK -Message "Explorer stopped." -Indent 1
+        $explorerStopSuccess = $true
+    } else {
+        Write-Status -Status FAIL -Message "Failed to stop explorer." -Indent 1
+    }
 } else {
-    Write-Status -Status FAIL -Message "Failed to stop explorer." -Indent 1
+    $explorerStopSuccess = $true
 }
 
 # ==================== REGISTRY TWEAKS ====================
@@ -525,8 +530,6 @@ if ($explorerStopSuccess) {
     Stop-Process -Name explorer -Force
 }
 
-$getExplorerProcess = {Get-Process -Name "explorer" -ErrorAction SilentlyContinue}
-
 if (!(& $getExplorerProcess)) {
     
     Write-Status -Status ACTION "Waiting for explorer process..." -Indent 1
@@ -534,7 +537,6 @@ if (!(& $getExplorerProcess)) {
     while (!(& $getExplorerProcess)) {
         Start-Sleep -Milliseconds 500
     }
-
 }
 
 Write-Status -Status OK -Message "Explorer restarted." -Indent 1

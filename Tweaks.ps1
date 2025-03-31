@@ -530,4 +530,5 @@ Write-Status -Status ACTION -Message "Refreshing desktop..."
 
 [RefreshDesktop]::Refresh()
 
-Write-Status -Status OK -Message "Done."
+Write-Host
+Write-Status -Status OK -Message "Script execution complete."

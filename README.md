@@ -73,7 +73,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Remove the Microsoft Edge shortcut from the Public Desktop**
 
-1. **Notepad settings (current user)**
+1. **Notepad settings (current user):**
     * Open files in a new tab.
     * Start a new session / discard unsaved changes when Notepad starts.
     * WordWrap enabled.

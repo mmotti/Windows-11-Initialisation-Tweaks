@@ -67,7 +67,19 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Change registry settings to enable RDP.
     * Enable firewall rules for the associated "Remote Desktop" display group.
 
-1. **Remove the Microsoft Edge shortcut from the Public Desktop** 
+1. **Remove the Microsoft Edge shortcut from the Public Desktop**
+
+1. **Notepad settings (current user)**
+    * Open files in a new tab.
+    * Start a new session / discard unsaved changes when Notepad starts.
+    * WordWrap enabled.
+    * Recent files enabled.
+    * AutoCorrect enabled.
+    * Disable CoPilot (Notepad integration).
+
+    Note: Spellcheck option (enabled by default) is not altered as it could exclude file formats in future should they add further support.
+
+    **You may need to launch, close and relaunch notepad for changes to take effect**.
 
 1. **Remove OneDrive:**
     * Scan registry for UninstallStrings and run the uninstallers.

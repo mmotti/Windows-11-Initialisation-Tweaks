@@ -2,9 +2,6 @@ $script:BackedUpRegistryPaths = @()
 $script:DisableBackups = $false
 $script:RegistryTweaksDisabled = $false
 $script:ScriptRunBackupDir = $null
-$script:OKChar = [char]0x2714
-$script:FailChar = [char]0x2716
-$script:WarningChar = [char]0x26A0
 
 function Test-IsAdminElevated {
     return ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::
@@ -21,14 +18,14 @@ function Import-RegKeys {
         return
     }
 
-    $regKeys = Get-ChildItem -Path $keyPath -Include *.reg -Recurse -ErrorAction SilentlyContinue
+    $regKeys = Get-ChildItem -Path $keyPath -Include *.reg -Recurse -ErrorAction SilentlyContinue | 
+               Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
 
     foreach ($key in $regKeys) {
 
         if ($script:DisableBackups -eq $false) {
             if (!(Export-RegKeys -KeyPath $key.FullName)) {
-                Write-Host "`t$script:FailChar " -NoNewline -ForegroundColor Red
-                Write-Host "`t$($key.Name): Failed to create registry backup."
+                Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
                 continue
             }
         }
@@ -36,10 +33,9 @@ function Import-RegKeys {
         $result = reg import $key.FullName 2>&1
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "`t$script:FailChar $($key.Name): $($result -replace '^ERROR:\s*', '')" -ForegroundColor Red
+            Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
         } else {
-            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-            Write-Host $key.Name
+            Write-Status -Status OK -Message $key.Name -Indent 1
         }
     }
 }
@@ -94,6 +90,48 @@ function Export-RegKeys {
     }
 
     return $false
+}
+
+function Write-Status {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateSet("INFO", "ACTION", "OK", "FAIL", "WARN", IgnoreCase=$true)]
+        [string] $Status,
+
+        [Parameter(Mandatory=$true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string] $Message,
+
+        [int] $Indent = 0
+    )
+
+    process {
+
+        $OKChar = [char]0x2714
+        $FailChar = [char]0x2716
+        $WarningChar = [char]0x26A0
+        $ActionChar = [char]0x2699
+
+        switch ($Status.ToUpperInvariant()) {
+            "ACTION" {$char=$ActionChar;$colour="Blue"}
+            "OK" {$char=$OKChar;$colour="Green"}
+            "FAIL" {$char=$FailChar;$colour="Red"}
+            "WARN" {$char=$WarningChar;$colour="Yellow"}
+            default {$char=$null; $colour="White"}
+        }
+
+        if ($Indent -gt 0) {
+            Write-Host ("`t" * $Indent) -NoNewline
+        }
+        
+        if ($char) {
+            Write-Host $char -ForegroundColor $colour -NoNewline
+            $Message = " $Message"
+        }
+
+        Write-Host $Message
+    }
 }
 
 if (!(Test-IsAdminElevated)) {
@@ -173,7 +211,7 @@ public class RefreshDesktop
 
 if ($script:DisableBackups -eq $false) {
 
-    Write-Host "[i] Initialising backup area..." -ForegroundColor Blue
+    Write-Status -Status ACTION -Message "Initialising backup area..."
 
     # Initialise the backup folders.
 
@@ -194,14 +232,13 @@ if ($script:DisableBackups -eq $false) {
                 New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
             }
             catch {
-                Write-Host "`t$script:FailChar Unable to create path: `"$dir`"." -ForegroundColor Red
-                Write-Host "`t$script:WarningChar Registry tweaks will be skipped." -ForegroundColor Yellow
+                Write-Status -Status FAIL -Message "Unable to create path: `"$dir`"." -Indent 1
+                Write-Status -Status WARN -Message "Registry tweaks will be skipped." -Indent 1
                 $script:RegistryTweaksDisabled = $true
                 break
             }
 
-            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-            Write-Host "Registry backup directory initialised:"
+            Write-Status -Status OK -Message "Registry backup directory initialised:" -Indent 1
             Write-Host "`t`t`"$script:ScriptRunBackupDir`""
         }
     }
@@ -210,7 +247,7 @@ if ($script:DisableBackups -eq $false) {
 # ==================== REGISTRY TWEAKS ====================
 
 if ($script:RegistryTweaksDisabled -eq $false) {
-    Write-Host "[i] Starting registry tweaks..." -ForegroundColor Blue
+    Write-Status -Status ACTION -Message "Starting registry tweaks..."
     Import-RegKeys -keyPath "$PSScriptRoot\assets\reg"
 }
 
@@ -219,7 +256,7 @@ if ($script:RegistryTweaksDisabled -eq $false) {
 # Balanced for X3D, High Performance otherwise.
 # Disable sleep whilst AC powered if target plan is balanced.
 
-Write-Host '[i] Setting appropriate power plan...' -ForegroundColor Blue
+Write-Status -Status ACTION -Message "Setting appropriate power plan..."
 
 $powerSchemes = & powercfg /list
 
@@ -232,7 +269,7 @@ if ($powerSchemes) {
         $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
     }
     catch {
-        Write-Host "`t$script:WarningChar It was not possible to obtain the processor string." -ForegroundColor Yellow
+        Write-Status -Status WARN -Message "It was not possible to obtain the processor string." -Indent 1
     }
 
     $x3dCPU = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
@@ -245,18 +282,16 @@ if ($powerSchemes) {
     if ($desiredSchemeGUID) {
 
         if ($activeSchemeGUID -eq $desiredSchemeGUID) {
-            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-            Write-Host "Successfully applied $targetPowerPlan power plan."
+            Write-Status -Status OK -Message "Successfully applied $targetPowerPlan power plan." -Indent 1
         } else {
             # Set the desired scheme.
-            Write-Host "[i] Setting active power plan to: $targetPowerPlan" -ForegroundColor Blue
+            Write-Status -Status ACTION -Message "Setting active power plan to: $targetPowerPlan" -Indent 1
             & powercfg /setactive $desiredSchemeGUID
 
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "`t$script:FailChar Failed to set $targetPowerPlan power plan."-ForegroundColor Red
+                Write-Status -Status FAIL -Message "Failed to set $targetPowerPlan power plan." -Indent 1
             } else {
-                Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-                Write-Host "Successfully applied $targetPowerPlan power plan."
+                Write-Status -Status OK -Message "Successfully applied $targetPowerPlan power plan." -Indent 1
             }
         }
     }
@@ -264,18 +299,17 @@ if ($powerSchemes) {
 
 # ==================== ENABLE FEATURES ====================
 
-Write-Host "[i] Processing Windows features..." -ForegroundColor Blue
+Write-Status -Status ACTION -Message "Processing Windows features..."
 
 
 # Apply Windows Firewall rules only outside of Windows Sandbox.
 if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
     try {
         Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Write-Host "`t$script:OKChar " -ForegroundColor Green -NoNewline
-        Write-Host "Allowed RDP in Windows Firewall."
+        Write-Status -Status OK -Message "Allowed RDP in Windows Firewall. " -Indent 1
     }
     catch {
-        Write-Host "`t$script:FailChar: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
     }
 }
 
@@ -288,7 +322,7 @@ $publicShortcuts = @(
 
 if (@($publicShortcuts).Count -gt 0) {
 
-    Write-Host "[i] Processing Public Desktop shortcuts..." -ForegroundColor Blue
+    Write-Status -Status ACTION -Message "Processing Public Desktop shortcuts..."
 
     $publicShortcuts |
     ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } |
@@ -296,11 +330,89 @@ if (@($publicShortcuts).Count -gt 0) {
     ForEach-Object {
         try {
             $_ | Remove-Item -Force
-            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-            Write-Host "Removed `"$_`""
+            Write-Status -Status OK -Message "Removed $_" -Indent 1
         }
         catch {
-            Write-Host "`t$script:FailChar Failed to remove `"$_`"" -ForegroundColor Red
+            Write-Status -Status FAIL -Message "Failed to remove $_" -Indent 1
+        }
+    }
+}
+
+# ==================== NOTEPAD SETTINGS (CURRENT USER) ====================
+
+$notepadHiveLoaded = $false
+
+try {
+
+    Write-Status -Status ACTION -Message "Checking for Notepad..."
+
+    $packageName = "Microsoft.WindowsNotepad"
+    $appxPackage = Get-AppxPackage -Name $packageName -ErrorAction SilentlyContinue
+
+    if (!$appxPackage) {
+        Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
+        throw
+    }
+    Write-Status -Status OK -Message "Notepad is installed." -Indent 1
+
+    $notepadHive = Join-Path $env:LOCALAPPDATA "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
+    $notepadConfig = Join-Path $PSScriptRoot "assets\reg\Manual\WindowsNotepad\LocalState.reg"
+
+    $notepadHive, $notepadConfig | ForEach-Object {
+        if (!(Test-Path -Path $_ -PathType Leaf)) {
+            Write-Status -Status FAIL -Message "Path not found: $_" -Indent 1
+            throw
+        }
+    }
+
+    Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
+
+    $notepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
+
+    if (& $notepadProcess) {
+
+        Write-Status -Status ACTION -Message "Killing Notepad processes..." -Indent 1
+        (& $notepadProcess) | ForEach-Object {$_ | Stop-Process -Force}
+
+        while (& $notepadProcess) {
+            Start-Sleep -Milliseconds 500
+        }
+    }
+
+    Write-Status -Status OK -Message "Notepad process killed." -Indent 1
+
+    Write-Status -Status ACTION -Message "Loading Notepad registry hive: `"$notepadHive`"" -Indent 1
+    $result = reg load HKU\TempUser $notepadHive 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        $notepadHiveLoaded = $true
+        Write-Status -Status OK -Message "Hive loaded." -Indent 1
+
+    }
+
+    Write-Status -Status ACTION -Message "Importing $notepadConfig" -Indent 1
+    $result = reg import $notepadConfig 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Status -Status OK -Message "Settings successfully imported." -Indent 1
+    } else {
+        Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received during the import process." -Indent 1
+    }
+}
+catch {
+    if ($_.Exception.Message -ne "ScriptHalted") {
+        Write-Host $_.Exception.Message
+    }
+}
+
+finally {
+    if ($notepadHiveLoaded) {
+        Write-Status -Status ACTION -Message "Unloading Notepad registry hive..." -Indent 1
+        $result = reg unload HKU\TempUser 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Status -Status OK -Message "Hive unloaded." -Indent 1
+        } else {
+            Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received when unloading hive." -indent 1
         }
     }
 }
@@ -309,7 +421,7 @@ if (@($publicShortcuts).Count -gt 0) {
 
 # Standard OneDrive entries.
 
-Write-Host "[i] Checking for OneDrive installations..." -ForegroundColor Blue
+Write-Status -Status ACTION -Message "Checking for OneDrive installations..."
 
 $oneDriveInstallations = @(
     "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
@@ -322,13 +434,12 @@ if ($oneDriveInstallations) {
     $oneDriveInstallations | ForEach-Object {
         $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
         if ($uninstallString){
-            Write-Host "[i] Executing: $uninstallString" -ForegroundColor Blue
+            Write-Status -Status ACTION -Message "Executing: $uninstallString" -Indent 1
             Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
         }
     }
 } else {
-     Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-     Write-Host "No OneDrive installations detected."
+     Write-Status -Status OK -Message "No OneDrive installations detected." -Indent 1
 }
 
 # Default user registry hive.
@@ -338,7 +449,7 @@ try {
     $oneDriveKeyValue = "OneDriveSetup"
     $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
 
-    Write-Host "[i] Checking the default user's registry hive for $oneDriveKeyValue..." -ForegroundColor Blue
+    Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
     
     $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
     
@@ -354,22 +465,20 @@ try {
 
     if ($oneDriveDefaultUserSetup) {
         try {
-            Write-Host "[i] Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "HKU:", "HKEY_USERS")" -ForegroundColor Blue
+            Write-Status -Status ACTION -Message "Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "HKU:", "HKEY_USERS")" -Indent 1
             $oneDriveDefaultUserSetup | Remove-ItemProperty -Name $oneDriveKeyValue -Force
-            Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-            Write-Host "Registry key removed."
+            Write-Status -Status OK -Message "Registry key removed." -Indent 1
         }
         catch {
             throw "Failed to remove $oneDriveKeyValue"
         }
     } else {
-        Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-        Write-Host "No `"$oneDriveKeyValue`" detected in the default user's registry hive."
+        Write-Status -Status OK -Message "No `"$oneDriveKeyValue`" detected in the default user's registry hive." -Indent 1
     }
     
 }
 catch {
-    Write-Host "`t$script:FailChar  $_" -ForegroundColor Red
+    Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
 }
 finally {
     if ($hkuDrive) {
@@ -382,7 +491,7 @@ finally {
 
 # ==================== RESURRECT EXPLORER ====================
 
-Write-Host '[i] Restarting explorer...' -ForegroundColor Blue
+Write-Status -Status ACTION -Message "Restarting explorer..."
 
 Stop-Process -Name explorer -Force
 
@@ -390,12 +499,11 @@ while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     Start-Sleep -Milliseconds 500
 }
 
-Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-Write-Host "Explorer restarted."
+Write-Status -Status OK -Message "Explorer restarted." -Indent 1
 
 # ==================== APPLY WALLPAPER CHANGES ====================
 
-Write-Host "[i] Applying wallpaper..." -ForegroundColor Blue
+Write-Status -Status ACTION -Message "Applying wallpaper..."
 
 $SPI_SETDESKWALLPAPER = 0x0014
 $SPIF_UPDATEINIFILE = 0x01
@@ -404,11 +512,9 @@ $SPIF_SENDCHANGE = 0x02
 $result = [User32]::SystemParametersInfo($SPI_SETDESKWALLPAPER, 0, [IntPtr]::Zero, $SPIF_UPDATEINIFILE -bor $SPIF_SENDCHANGE)
 
 if ($result) {
-    Write-Host "`t$script:OKChar " -NoNewline -ForegroundColor Green
-    Write-Host "Wallpaper applied."
+    Write-Status -Status OK -Message "Wallpaper applied." -Indent 1
 } else {
-    Write-Host "`t$script:FailChar " -NoNewline -ForegroundColor Red
-    Write-Host "Failed to apply wallpaper."
+    Write-Status -Status FAIL -Message "Failed to apply wallpaper." -Indent 1
 }
 
 # ==================== REFRESH DESKTOP ====================
@@ -418,8 +524,8 @@ while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::
     continue
 }
 
-Write-Host "[i] Refreshing desktop..." -ForegroundColor Blue
+Write-Status -Status ACTION -Message "Refreshing desktop..."
 
 [RefreshDesktop]::Refresh()
 
-Write-Host "[i] Done."
+Write-Status -Status OK -Message "Done."

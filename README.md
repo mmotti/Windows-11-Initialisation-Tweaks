@@ -15,12 +15,12 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 ## Script actions
 
-1. **Defaults**
+1. **Defaults:**
     * Set Windows Terminal as the default console application.
 
 1. **Apply the Windows(dark) theme.**
 
-1. **Lock screen**
+1. **Lock screen:**
     * Disable Windows Spotlight.
     * Disable "fun facts, tips and tricks" on the lock screen.
     * Disable lock screen status.
@@ -44,7 +44,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Open "This PC" by default.
     * Disable "Show sync provider notifications".
 
-1. **Disable fast startup**
+1. **Disable fast startup.**
 
 1. **Privacy / Annoyances:**
     * Disable Copilot+ Recall.
@@ -63,15 +63,15 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Sending optional diagnostic data".
     * Disable Windows toast suggestions (notifications).
 
-1. **Set the Power plan**:
+1. **Set the Power plan:**
     * Balanced: X3D processors.
     * High Performance: Everything else.
 
-1. **Enable RDP**
+1. **Enable RDP:**
     * Change registry settings to enable RDP.
     * Enable firewall rules for the associated "Remote Desktop" display group.
 
-1. **Remove the Microsoft Edge shortcut from the Public Desktop**
+1. **Remove the Microsoft Edge shortcut from the Public Desktop.**
 
 1. **Notepad settings (current user):**
     * Open files in a new tab.
@@ -89,7 +89,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Scan registry for UninstallStrings and run the uninstallers.
     * Remove "OneDriveSetup" from the default user's registry hive (HKEY_USERS\Default\Software\Microsoft\Windows\CurrentVersion\Run).
 
-1. **Windows Update**
+1. **Windows Update:**
     * Disable "Delivery Optimisation" (Don't allow downloads from other devices).
 
 ## Usage with Windows Sandbox

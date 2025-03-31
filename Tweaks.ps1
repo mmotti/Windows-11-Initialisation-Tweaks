@@ -244,6 +244,20 @@ if ($script:DisableBackups -eq $false) {
     }
 }
 
+# ==================== STOP EXPLORER ====================
+$explorerStopSuccess = $false
+
+Write-Status -Status ACTION -Message "Stopping explorer..."
+
+$result = taskkill.exe /im explorer.exe /f 2>&1
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Status -Status OK -Message "Explorer stopped." -Indent 1
+    $explorerStopSuccess = $true
+} else {
+    Write-Status -Status FAIL -Message "Failed to stop explorer." -Indent 1
+}
+
 # ==================== REGISTRY TWEAKS ====================
 
 if ($script:RegistryTweaksDisabled -eq $false) {
@@ -493,9 +507,24 @@ finally {
 
 # ==================== RESURRECT EXPLORER ====================
 
+# A little bit of error handling as there's currently a bug or "feature" within Windows Sandbox (insider build)
+# where taskkill permissions are denied. If we can't keep explorer killed whilst registry tweaks are applied, some
+# settings won't stick (such as small icons).
+
 Write-Status -Status ACTION -Message "Restarting explorer..."
 
-Stop-Process -Name explorer -Force
+if ($explorerStopSuccess) {
+    try {
+        Start-Process "explorer.exe"
+    }
+    catch {
+        Write-Status -Status FAIL -Message "Failed to restart explorer " -Indent 1
+    }
+} else {
+    Stop-Process -Name explorer -Force
+}
+
+Write-Status -Status ACTION "Waiting for explorer process..." -Indent 1
 
 while (!(Get-Process -Name "explorer" -ErrorAction SilentlyContinue)) {
     Start-Sleep -Milliseconds 500

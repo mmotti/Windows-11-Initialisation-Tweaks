@@ -14,22 +14,29 @@ function Import-RegKeys {
         [array]$KeyArray
     )
 
-    foreach ($key in $KeyArray) {
+    $validKeys = $KeyArray | Where-Object {$_ -is [System.IO.FileInfo] -and $_.Name -match "\.reg$"}
 
-        if ($script:DisableBackups -eq $false) {
-            if (!(Export-RegKeys -KeyPath $key.FullName)) {
-                Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
-                continue
+    if ($validKeys) {
+
+        foreach ($key in $validKeys) {
+
+            if ($script:DisableBackups -eq $false) {
+                if (!(Export-RegKeys -KeyPath $key.FullName)) {
+                    Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
+                    continue
+                }
+            }
+    
+            $result = reg import $key.FullName 2>&1
+    
+            if ($LASTEXITCODE -ne 0) {
+                Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
+            } else {
+                Write-Status -Status OK -Message $key.Name -Indent 1
             }
         }
-
-        $result = reg import $key.FullName 2>&1
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
-        } else {
-            Write-Status -Status OK -Message $key.Name -Indent 1
-        }
+    } else {
+        Write-Status -Status FAIL "There are no items to import."
     }
 }
 

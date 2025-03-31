@@ -351,6 +351,10 @@ try {
                     throw
                 }
             }
+        } else {
+            $targetPlanActive = $false
+            Write-Status -Status WARN -Message "The desired power plan was not found on this system."
+            throw
         }
     }
 }

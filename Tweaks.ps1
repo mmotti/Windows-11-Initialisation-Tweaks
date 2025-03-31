@@ -108,25 +108,27 @@ function Write-Status {
 
     process {
 
-        $OKChar = [char]0x2714
-        $FailChar = [char]0x2716
-        $WarningChar = [char]0x26A0
-        $ActionChar = [char]0x2699
+        $okPrefix = "[OK]"
+        $failPrefix = "[FAIL]"
+        $warningPrefix = "[WARN]"
+        $actionPrefix = "[>]"
+        $infoPrefix = "[i]"
 
         switch ($Status.ToUpperInvariant()) {
-            "ACTION" {$char=$ActionChar;$colour="Blue"}
-            "OK" {$char=$OKChar;$colour="Green"}
-            "FAIL" {$char=$FailChar;$colour="Red"}
-            "WARN" {$char=$WarningChar;$colour="Yellow"}
-            default {$char=$null; $colour="White"}
+            "ACTION" {$prefix=$actionPrefix;$colour="Blue"}
+            "OK" {$prefix=$okPrefix;$colour="Green"}
+            "FAIL" {$prefix=$failPrefix;$colour="Red"}
+            "WARN" {$prefix=$warningPrefix;$colour="Yellow"}
+            "INFO" {$prefix=$infoPrefix; $colour="White"}
+            default {$prefix=$null; $colour="White"}
         }
 
         if ($Indent -gt 0) {
             Write-Host ("`t" * $Indent) -NoNewline
         }
 
-        if ($char) {
-            Write-Host $char -ForegroundColor $colour -NoNewline
+        if ($prefix) {
+            Write-Host $prefix -ForegroundColor $colour -NoNewline
             $Message = " $Message"
         }
 

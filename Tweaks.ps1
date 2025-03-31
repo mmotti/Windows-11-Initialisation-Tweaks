@@ -387,7 +387,9 @@ try {
     if ($LASTEXITCODE -eq 0) {
         $notepadHiveLoaded = $true
         Write-Status -Status OK -Message "Hive loaded." -Indent 1
-
+    } else {
+        Write-Status -Status FAIL -Message "Failed to load hive."
+        throw
     }
 
     Write-Status -Status ACTION -Message "Importing $notepadConfig" -Indent 1

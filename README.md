@@ -17,8 +17,13 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Defaults**
     * Set Windows Terminal as the default console application.
-    
+
 1. **Apply the Windows(dark) theme.**
+
+1. **Lock screen**
+    * Disable Windows Spotlight.
+    * Disable "fun facts, tips and tricks" on the lock screen.
+    * Disable lock screen status.
 
 1. **Taskbar:**
     * Align to the left.
@@ -46,7 +51,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Store my activity history on this device".
     * Disable online search suggestions.
     * Disable app permission to use advertising ID.
-    * Disable lock screen "fun facts, tips and tricks" on the lock screen.
     * Disable "Get tips and suggestions when using Windows" notifications.
     * Disable "Show me suggested content in the Settings app".
     * Disable the "Windows welcome experience" after updates.
@@ -56,14 +60,14 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
     * Disable "Let websites show me locally relevant content by accessing my language list".
     * Disable "Let Windows improve Start and Search by tracking app launches".
     * Disable "Improve ink and typing".
-    * Disable "Sending optional diagnostic data". 
+    * Disable "Sending optional diagnostic data".
     * Disable Windows toast suggestions (notifications).
 
 1. **Set the Power plan**:
     * Balanced: X3D processors.
     * High Performance: Everything else.
 
-1. **Enable RDP** 
+1. **Enable RDP**
     * Change registry settings to enable RDP.
     * Enable firewall rules for the associated "Remote Desktop" display group.
 

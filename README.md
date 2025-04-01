@@ -84,8 +84,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
     Note: Spellcheck option (enabled by default) is not altered as it could exclude file formats in future should they add further support.
 
-    **You may need to launch, close and relaunch notepad for changes to take effect**.
-
 1. **Remove OneDrive:**
     * Scan registry for UninstallStrings and run the uninstallers.
     * Remove "OneDriveSetup" from the default user's registry hive (HKEY_USERS\Default\Software\Microsoft\Windows\CurrentVersion\Run).

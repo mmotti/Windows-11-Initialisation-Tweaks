@@ -74,7 +74,7 @@ function Export-RegKeys {
                     $friendlyFileName = "${friendlyFileName}.reg"
                 }
 
-                $result = reg export $keyRegPath "$script:ScriptRunBackupDir\$friendlyFileName" /y 2>&1
+                $null = reg export $keyRegPath "$script:ScriptRunBackupDir\$friendlyFileName" /y 2>&1
 
                 if ($LASTEXITCODE -eq 0) {
                     $script:BackedUpRegistryPaths += $_.Groups[1].Value
@@ -474,7 +474,7 @@ if ($keyArray) {
                         Write-Status -Status OK -Message "Notepad cycled successfully." -Indent 1
                     }
                     catch {
-                        Write-Status -Status FAIL -Message "An error occurred whilst attempting to cycle Notepad: $($_.Exception.Message)" -Indent 1
+                        Write-Status -Status FAIL -Message "An error occurred whilst attempting to cycle Notepad: $($_.Exception.Message)" -Indent 1xd
                     }
                 }
             } else {

@@ -439,7 +439,7 @@ if ($keyArray) {
         Write-Status -Status OK -Message "Notepad process killed." -Indent 1
 
         Write-Status -Status ACTION -Message "Loading Notepad registry hive: `"$notepadHive`"" -Indent 1
-        $result = reg load HKU\TempUser $notepadHive 2>&1
+        $result = reg load HKU\WindowsNotepad $notepadHive 2>&1
 
         if ($LASTEXITCODE -eq 0) {
             $notepadHiveLoaded = $true
@@ -458,7 +458,7 @@ if ($keyArray) {
     finally {
         if ($notepadHiveLoaded) {
             Write-Status -Status ACTION -Message "Unloading Notepad registry hive..." -Indent 1
-            $result = reg unload HKU\TempUser 2>&1
+            $result = reg unload HKU\WindowsNotepad 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Status -Status OK -Message "Hive unloaded." -Indent 1
             } else {

@@ -10,7 +10,6 @@ function Test-IsAdminElevated {
 
 function Import-RegKeys {
     param (
-        [ValidateNotNullOrEmpty()]
         [array]$KeyArray
     )
 
@@ -36,7 +35,7 @@ function Import-RegKeys {
             }
         }
     } else {
-        Write-Status -Status FAIL "There are no items to import."
+        Write-Status -Status FAIL "There are no items to import." -Indent 1
     }
 }
 
@@ -106,8 +105,6 @@ function Write-Status {
         [int] $Indent = 0
     )
 
-    process {
-
         $okPrefix = "[OK]"
         $failPrefix = "[FAIL]"
         $warningPrefix = "[WARN]"
@@ -133,7 +130,6 @@ function Write-Status {
         }
 
         Write-Host $Message
-    }
 }
 
 if (!(Test-IsAdminElevated)) {
@@ -161,7 +157,8 @@ Clear-Host
 # Check for Windows 11.
 
 if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
-    throw "Windows 11 is required for this script to run."
+    Write-Status -Status FAIL -Message "Windows 11 is required for this script to run."
+    throw
 }
 
 # Check for whether to enable backups or not.
@@ -274,9 +271,7 @@ if ($script:RegistryTweaksDisabled -eq $false) {
     $keyArray = Get-ChildItem -Path (Join-Path $PSScriptRoot "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue |
     Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
 
-    if ($keyArray) {
-        Import-RegKeys -KeyArray $keyArray
-    }
+    Import-RegKeys -KeyArray $keyArray
 }
 
 # ==================== SET APPROPRIATE POWER PLAN ====================
@@ -321,8 +316,7 @@ try {
                 powercfg /setactive $desiredSchemeGUID
 
                 if ($LASTEXITCODE -ne 0) {
-                    Write-Status -Status FAIL -Message "Failed to set $targetPowerPlan power plan." -Indent 1
-                    throw
+                    throw "Failed to set $targetPowerPlan power plan."
                 } else {
                     $targetPlanActive = $true
                     Write-Status -Status OK -Message "Successfully applied $targetPowerPlan power plan." -Indent 1
@@ -348,19 +342,18 @@ try {
                     }
                 }
                 catch {
-                    Write-Status -Status FAIL -Message "CimInstance query for battery detection failed."
-                    throw
+                    Write-Status -Status FAIL -Message "CimInstance query for battery detection failed." -Indent 1
+                    throw "Unable to perform battery lookup."
                 }
             }
         } else {
             $targetPlanActive = $false
-            Write-Status -Status WARN -Message "The desired power plan was not found on this system."
-            throw
+            Write-Status -Status WARN -Message "The desired power plan was not found on this system." -Indent 1
         }
     }
 }
 catch {
-    Write-Status -Status FAIL -Message "An error occurred whilst tweaking the power plan." -Indent 1
+    Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
 }
 
 # ==================== ENABLE FEATURES ====================
@@ -420,15 +413,14 @@ if ($keyArray) {
 
         if (!$appxPackage) {
             Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
-            throw
+            throw "Unable to continue processing Notepad."
         }
         Write-Status -Status OK -Message "Notepad is installed." -Indent 1
 
         $notepadHive = Join-Path $env:LOCALAPPDATA "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
 
         if (!(Test-Path -Path $notepadHive)) {
-            Write-Status -Status FAIL -Message "Path not found: $_" -Indent 1
-            throw
+            throw "Path not found: $_"
         }
 
         Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
@@ -453,17 +445,14 @@ if ($keyArray) {
             $notepadHiveLoaded = $true
             Write-Status -Status OK -Message "Hive loaded." -Indent 1
         } else {
-            Write-Status -Status FAIL -Message "Failed to load hive."
-            throw
+            throw "Failed to load hive."
         }
 
         Write-Status -Status ACTION -Message "Importing Notepad tweaks (current user)..." -Indent 1
         Import-RegKeys -KeyArray $keyArray
     }
     catch {
-        if ($_.Exception.Message -ne "ScriptHalted") {
-            Write-Host $_.Exception.Message
-        }
+        Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
     }
 
     finally {

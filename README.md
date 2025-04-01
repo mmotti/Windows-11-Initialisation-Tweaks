@@ -28,7 +28,6 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 1. **Taskbar:**
     * Align to the left.
     * Hide the Copilot button.
-    * Disable Widgets.
     * Hide Search button.
     * Select the far right corner of the taskbar to show the desktop.
 
@@ -48,6 +47,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
 1. **Privacy / Annoyances:**
     * Disable Copilot+ Recall.
+    * Disable Widgets.
     * Disable "Store my activity history on this device".
     * Disable online search suggestions.
     * Disable app permission to use advertising ID.

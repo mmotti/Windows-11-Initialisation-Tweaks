@@ -271,7 +271,7 @@ if (& $getExplorerProcess) {
 if ($script:RegistryTweaksDisabled -eq $false) {
     Write-Status -Status ACTION -Message "Starting registry tweaks..."
 
-    $keyArray = Get-ChildItem -Path "$PSScriptRoot\assets\reg" -Include *.reg -Recurse -ErrorAction SilentlyContinue |
+    $keyArray = Get-ChildItem -Path (Join-Path $PSScriptRoot "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue |
     Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
 
     if ($keyArray) {
@@ -405,7 +405,7 @@ if (@($publicShortcuts).Count -gt 0) {
 
 # ==================== NOTEPAD SETTINGS (CURRENT USER) ====================
 
-$keyArray = Get-ChildItem -Path (Join-Path $PSScriptRoot "assets\reg\Manual\WindowsNotepad") -Include *.reg -Recurse -ErrorAction SilentlyContinue
+$keyArray = Get-ChildItem -Path (Join-Path $PSScriptRoot "assets\reg\MISC\Manual\WindowsNotepad") -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
 if ($keyArray) {
 

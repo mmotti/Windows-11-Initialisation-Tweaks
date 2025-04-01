@@ -425,13 +425,13 @@ if ($keyArray) {
 
         Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
 
-        $notepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
+        $getNotepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
 
-        if (& $notepadProcess) {
+        if (& $getNotepadProcess) {
 
             Write-Status -Status WARN "Please close Notepad to continue (ALT+TAB to the window)." -Indent 1
 
-            while (& $notepadProcess) {
+            while (& $getNotepadProcess) {
                 Start-Sleep -Milliseconds 500
             }
         }

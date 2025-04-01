@@ -324,7 +324,7 @@ try {
             }
 
             if ($targetPlanActive) {
-                
+
                 # Disable sleep if the system does not have a battery (hopefully only targeting desktops).
                 try {
 
@@ -461,6 +461,22 @@ if ($keyArray) {
             $result = reg unload HKU\WindowsNotepad 2>&1
             if ($LASTEXITCODE -eq 0) {
                 Write-Status -Status OK -Message "Hive unloaded." -Indent 1
+
+                # Notepad needs to start / exit to apply settings.
+                if (!(&$getNotepadProcess)) {
+                    Write-Status -Status ACTION -Message "Cycling Notepad to apply settings..." -Indent 1
+                    try {
+                        Start-Process Notepad
+                        while (!($getNotepadProcess)) {
+                            Start-Sleep -Milliseconds 500
+                        }
+                        Stop-Process -Name Notepad -Force
+                        Write-Status -Status OK -Message "Notepad cycled successfully." -Indent 1
+                    }
+                    catch {
+                        Write-Status -Status FAIL -Message "An error occurred whilst attempting to cycle Notepad: $($_.Exception.Message)" -Indent 1
+                    }
+                }
             } else {
                 Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received when unloading hive." -indent 1
             }

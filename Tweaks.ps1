@@ -15,7 +15,14 @@ $ps1Path, $ps1Functions | ForEach-Object {
 
 # ==================== IMPORTS ====================
 
-. $ps1Functions
+# Fail here if we can't import the functions otherwise the rest 
+# of the script will fail.
+
+try {
+    . $ps1Functions
+} catch {
+    throw "Unable to import file: $ps1Functions"
+}
 
 # ==================== OBTAIN ELEVATION ====================
 

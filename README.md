@@ -1,19 +1,21 @@
-# Windows 11 initialisation Tweaks
-This script is a user "initialisation" for fresh Windows installs (after OOBE). It's here to make my life easier with VMs and such.
+# Windows 11 Initialisation Tweaks
+This script is a user "initialisation" for a fresh Windows install.
+
+The majority of the tweaks apply to the current user's context but in future I may look at options to conditionally apply them to all user profiles and the default user profile.
 
 **This script requires administrative privileges**.
 
 ![Demonstration of script running.](assets/img/demo.gif)
 
 ## Usage
-Execute using Run.bat
+**Run.bat**
 
 Or manually:
 ```
-powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "PATH\TO\YOUR\Tweaks.ps1"
 ```
 
-## Script actions
+## Actions
 
 1. **Defaults:**
     * Set Windows Terminal as the default console application.
@@ -94,7 +96,7 @@ powershell.exe -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ## Usage with Windows Sandbox
 You can use this file to initialise the Windows Sandbox too!
 
-#### Sample  configuration
+#### Sample configuration
 
 ```wsb
 <Configuration>

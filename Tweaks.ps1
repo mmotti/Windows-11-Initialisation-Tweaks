@@ -93,9 +93,6 @@ $ps1Path, $ps1Functions | ForEach-Object {
     }
 }
 
-$global:DefaultUserCustomHive -eq $null
-exit
-
 # ==================== IMPORTS ====================
 
 # Fail here if we can't import the functions otherwise the rest 

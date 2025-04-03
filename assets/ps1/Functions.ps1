@@ -140,32 +140,32 @@ function Import-RegKeys {
                 $tempFilePath = $null
                 $importFile = $originalFilePath
 
-            try {
+                try {
 
-                if ($DefaultUser.IsPresent) {
-                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
-                    if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
-                        $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
-                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
-                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
-                        $importFile = $tempFilePath
+                    if ($DefaultUser.IsPresent) {
+                        $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
+                        if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
+                            $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
+                            $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
+                            Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
+                            $importFile = $tempFilePath
+                        }
                     }
-                }
 
-                if ($global:BackupsEnabled -eq $true) {
-                    if (!(Export-RegKeys -KeyPath $importFile)) {
-                        Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
-                        continue
+                    if ($global:BackupsEnabled -eq $true) {
+                        if (!(Export-RegKeys -KeyPath $importFile)) {
+                            Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
+                            continue
+                        }
                     }
-                }
 
-                $result = reg import "$importFile" 2>&1
+                    $result = reg import "$importFile" 2>&1
 
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
-                } else {
-                    Write-Status -Status OK -Message "$($key.Name)" -Indent 1
-                }
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
+                    } else {
+                        Write-Status -Status OK -Message "$($key.Name)" -Indent 1
+                    }
 
                 }
                 catch {

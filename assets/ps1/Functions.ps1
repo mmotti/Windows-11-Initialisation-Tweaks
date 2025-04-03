@@ -79,11 +79,12 @@ function Import-RegKeys {
                 $importFile = $originalFilePath
 
                 try {
+
                     $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Default -ErrorAction Stop
                     $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
 
                     if ($originalContent -ne $modifiedContent) {
-                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid).reg"
+                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
                         Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Default -ErrorAction Stop
                         $importFile = $tempFilePath
                     }
@@ -114,28 +115,38 @@ function Import-RegKeys {
             }
         }
     } else {
+        
         $mode = if ($DefaultUser.IsPresent) {"DefaultUser"} else {"CurrentUser"}
         Write-Status -Status ACTION -Message "Starting registry import process (Mode: $mode)."
 
-        foreach ($key in $validKeys) {
-            $originalFilePath = $key.FullName
-            $tempFilePath = $null
-            $importFile = $originalFilePath
-            $defaultUserHiveLoaded = $false
+        $defaultHiveWasLoadedSuccessfully = $false 
+
+        try {
+
+            # --- Load Default Hive ONCE if needed ---
+            if ($DefaultUser.IsPresent) {
+                Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
+                $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath (Join-Path $env:SystemDrive "Users\Default\NTUSER.dat")
+                if (-not $defaultHiveWasLoadedSuccessfully) {
+                    # Get-UserRegistryHive should write the specific error. We just need to stop.
+                    Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
+                    return # Exit function if hive load fails
+                }
+                Write-Status -Status OK -Message "Default User hive loaded successfully to $defaultHiveMountPoint." -Indent 1
+            }
+
+            foreach ($key in $validKeys) {
+                $originalFilePath = $key.FullName
+                $tempFilePath = $null
+                $importFile = $originalFilePath
 
             try {
+
                 if ($DefaultUser.IsPresent) {
-
-                    $defaultUserHiveLoaded = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath (Join-Path $env:SystemDrive "Users\Default\NTUSER.dat")
-
-                    if ($defaultUserHiveLoaded -eq $false) {
-                        throw "Unable to load the Default user's registry hive."
-                    }
-
                     $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Default -ErrorAction Stop
                     if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
                         $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
-                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid).reg"
+                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
                         Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Default -ErrorAction Stop
                         $importFile = $tempFilePath
                     }
@@ -155,20 +166,23 @@ function Import-RegKeys {
                 } else {
                     Write-Status -Status OK -Message "$($key.Name)" -Indent 1
                 }
-            }
-            catch {
-                Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) "
-            }
-            finally {
-                if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
-                    Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+
                 }
-                if ($DefaultUser.IsPresent -and $defaultUserHiveLoaded) {
-                    $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
+                catch {
+                    Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) "
                 }
+                finally {
+                    if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
+                        Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
+        } finally {
+            if ($DefaultUser.IsPresent -and $defaultHiveWasLoadedSuccessfully) {
+                $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
             }
         }
-    }
+    }   
 }
 
 function Export-RegKeys {

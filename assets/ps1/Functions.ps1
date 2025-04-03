@@ -80,12 +80,12 @@ function Import-RegKeys {
 
                 try {
 
-                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Default -ErrorAction Stop
+                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
                     $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
 
                     if ($originalContent -ne $modifiedContent) {
                         $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
-                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Default -ErrorAction Stop
+                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
                         $importFile = $tempFilePath
                     }
 
@@ -143,11 +143,11 @@ function Import-RegKeys {
             try {
 
                 if ($DefaultUser.IsPresent) {
-                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Default -ErrorAction Stop
+                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
                     if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
                         $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
                         $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
-                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Default -ErrorAction Stop
+                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
                         $importFile = $tempFilePath
                     }
                 }
@@ -203,7 +203,7 @@ function Export-RegKeys {
         return $false
     }
 
-    $regFileContents = Get-Content -Path $KeyPath -Raw -Encoding Default -ErrorAction SilentlyContinue
+    $regFileContents = Get-Content -Path $KeyPath -Raw -Encoding Unicode -ErrorAction SilentlyContinue
 
     if ($regFileContents) {
 

@@ -225,6 +225,7 @@ function Import-RegKeys {
             }
         } finally {
             if ($DefaultUser.IsPresent -and $defaultHiveWasLoadedSuccessfully) {
+                Wait-RegeditExit
                 $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
             }
         }
@@ -622,6 +623,7 @@ function Remove-OneDrive {
             Remove-PSDrive -Name HKU
         }
         if ($hiveLoaded) {
+            Wait-RegeditExit
             $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
         }
     }
@@ -797,6 +799,19 @@ function Stop-Explorer {
     }
 
     return $true
+}
+
+function Wait-RegeditExit {
+    
+    $getRegeditProcess = {Get-Process -Name regedit -ErrorAction SilentlyContinue}
+
+    if (& $getRegeditProcess) {
+        Write-Status -Status WARN -Message "Please close regedit (ALT+TAB) to the window." -Indent 1
+    }
+
+    while (& $getRegeditProcess) {
+        Start-Sleep -Milliseconds 500
+    }
 }
 
 function Start-Explorer {

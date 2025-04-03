@@ -6,7 +6,7 @@
     This script applies various registry tweaks, sets power plans, manages firewall rules,
     removes specified shortcuts, configures Notepad, removes OneDrive, and applies a custom wallpaper.
     It includes options for enabling/disabling registry tweaks and backups, and a switch
-    to indicate intent to modify the default user profile (implementation specifics may vary).
+    to indicate intent to modify the Default user profile (implementation specifics may vary).
 
 .PARAMETER EnableBackups
     Enable or disable the creation of backups before applying changes. Defaults to $true.
@@ -16,8 +16,7 @@
     A switch parameter. If present, the script will attempt to apply relevant settings
     (like specific registry tweaks) to the Default User profile instead of the current user.
     NOTE: Full implementation for default user requires modifying functions to target the
-    Default User registry hive (NTUSER.DAT) and profile folders. This script provides the structure
-    but may need function adjustments for complete DefaultUser support.
+    Default User registry hive (NTUSER.DAT) and profile folders.
 
 .EXAMPLE
     .\Tweaks.ps1
@@ -29,8 +28,7 @@
 
     .EXAMPLE
     .\Tweaks.ps1 -AllUsers
-    Runs the script attempting to target all existing user profiles.
-    Runs the script attempting to target the Default User profile where applicable.
+    Runs the script attempting to target all existing user profiles (excluding Default).
 .NOTES
     Author: mmotti (https://github.com/mmotti)
     Requires Windows 11 (Build 22000+).

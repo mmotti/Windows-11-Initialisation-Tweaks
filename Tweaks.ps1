@@ -55,9 +55,11 @@ param(
     [Parameter(ParameterSetName='DefaultUser',
                Mandatory=$false,
                HelpMessage="Specify a custom path for a default user hive.")]
-    [ValidateNotNullOrEmpty()]
+    [ValidateNotNullOrEmpty()] # Prevent the user from being able to provide an empty or null string as an argument.
     [ValidateScript({
-        if ((Test-Path $_ -PathType Leaf) -and $_ -match "\.dat$") {
+        # Accommodate for some validation, especially if this parameter wasn't explicitly specified, but included as part of the
+        # parameter set.
+        if (($_ -eq "" -or ((Test-Path $_ -PathType Leaf) -and $_ -match "\.dat$"))) {
             $true
         } else {
             throw "Please specify a valid .dat file."

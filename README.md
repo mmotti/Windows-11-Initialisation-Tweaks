@@ -3,7 +3,7 @@ This script is a user "initialisation" for a fresh Windows install. The majority
 
 **This script requires administrative privileges**.
 
-![Demonstration of script running.](assets/img/demo.gif)
+![Demonstration of script running.](assets/img/demo030425.gif)
 
 ## Instructions
 

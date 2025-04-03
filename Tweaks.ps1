@@ -207,12 +207,13 @@ if (Update-Wallpaper) {
 }
 
 # ==================== REFRESH DESKTOP ====================
-
+Write-Status -Status ACTION -Message "Updating the desktop..."
 Update-Desktop
 
 # ==================== CLEAN-UP ====================
-
+Write-Status -Status ACTION -Message "Cleaning up..."
 Remove-Variable -Name scriptPath, scriptParentDir, RegistryTweaksEnabled, BackupsEnabled, ScriptRunBackupDir, DefaultUserOnly, AllUsers -Scope Global -ErrorAction SilentlyContinue
+Write-Status -Status OK -Message "Clean-up complete." -Indent 1
 
 # ==================== DONE ====================
 

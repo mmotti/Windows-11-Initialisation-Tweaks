@@ -871,12 +871,15 @@ function Update-Wallpaper {
 
 function Update-Desktop {
 
+    Write-Status -Status ACTION "Waiting for Windows Desktop shell..." -Indent 1
     while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::Zero) {
         Start-Sleep -Milliseconds 500
         continue
     }
 
-    Write-Status -Status ACTION -Message "Refreshing desktop..."
+    Write-Status -Status OK -Message "Desktop shell located." -Indent 1
+
+    Write-Status -Status ACTION -Message "Refreshing desktop..." -Indent 1
 
     [RefreshDesktop]::Refresh()
 }

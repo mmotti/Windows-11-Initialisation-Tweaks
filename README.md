@@ -36,7 +36,7 @@ This script is a user "initialisation" for a fresh Windows install. The majority
 
 **Run the script in the Default user's context but specify a custom location for the dat file:**
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -CustomDefaultUserHive "PATH\TO\YOUR\FILE.dat"
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUserCustomHive "PATH\TO\YOUR\FILE.dat"
 </details>
 
 

@@ -7,6 +7,8 @@ This script is a user "initialisation" for a fresh Windows install. The majority
 
 ## Instructions
 
+**Note:** If you choose to run this script with the DefaultUser or AllUsers (excludes default) switches, the HKEY_CURRENT_USERS registry entries be converted to the appropriate context. HKEY_LOCAL_MACHINE or other HKEY_USERS entries will apply as normal.
+
 ### 1. Open PowerShell and change directory:
     
     powershell

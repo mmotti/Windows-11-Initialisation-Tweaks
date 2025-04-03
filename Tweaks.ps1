@@ -27,7 +27,7 @@
     Runs the script attempting to target the Default User profile where applicable
 
 .EXAMPLE
-    .\Tweaks.ps1 -DefaultUser -CustomDefaultUserHive "C:\Data\NTUSER.dat"
+    .\Tweaks.ps1 -CustomDefaultUserHive "C:\Data\NTUSER.dat"
     Runs the script attempting to target a custom Default User profile where applicable.
 
 .EXAMPLE
@@ -70,16 +70,19 @@ param(
     [bool]$EnableBackups = $true
 )
 
+if ($PSBoundParameters.ContainsKey("CustomDefaultUserHive")) {
+    $DefaultUser = $true
+}
+
 $global:scriptPath = $MyInvocation.MyCommand.Path
 $global:scriptParentDir = Split-Path $global:scriptPath -Parent
 
-$global:DefaultUserOnly = $DefaultUser.IsPresent
+$global:DefaultUserOnly = [bool]$DefaultUser
 $global:DefaultUserCustomHive = $CustomDefaultUserHive
 $global:AllUsers = $AllUsers.IsPresent
 $global:RegistryTweaksEnabled = $true
 $global:BackupsEnabled = $EnableBackups
 $global:BackupDirectory = (Join-Path $global:scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
-
 
 $ps1Path = Join-Path $global:scriptParentDir "assets\ps1"
 $ps1Functions = Join-Path $ps1Path "Functions.ps1"
@@ -229,7 +232,9 @@ Update-Desktop
 
 # ==================== CLEAN-UP ====================
 Write-Status -Status ACTION -Message "Cleaning up..."
-Remove-Variable -Name scriptPath, scriptParentDir, RegistryTweaksEnabled, BackupsEnabled, ScriptRunBackupDir, DefaultUserOnly, AllUsers -Scope Global -ErrorAction SilentlyContinue
+Remove-Variable -Name scriptPath, scriptParentDir, RegistryTweaksEnabled, BackupsEnabled, ScriptRunBackupDir, DefaultUserOnly, DefaultUserCustomHive, AllUsers  -Scope Global -ErrorAction SilentlyContinue
+
+$global
 Write-Status -Status OK -Message "Clean-up complete." -Indent 1
 
 # ==================== DONE ====================

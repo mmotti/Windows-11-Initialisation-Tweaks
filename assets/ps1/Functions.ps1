@@ -7,20 +7,67 @@ function Test-IsAdminElevated {
 
 function Get-ElevatedTerminal {
 
-    if (!(Test-IsAdminElevated)) {
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [hashtable]$OriginalParameters
+    )
 
-        Write-Status -Status WARN -Message "Attempting to relaunch the script with elevated privileges..."
+    if (Test-IsAdminElevated) {
+        return
+    }
 
-        if (Get-Command wt -ErrorAction SilentlyContinue) {
-            $cmd = "wt"
-            $arguments = "new-tab -p `"PowerShell`" powershell -NoProfile -ExecutionPolicy Bypass -File `"$global:scriptPath`""
-        } else {
-            $cmd = "powershell"
-            $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$global:scriptPath`""
+    $baseArguments = @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "`"$global:scriptPath`""
+    )
+    
+    Write-Status -Status WARN -Message "Attempting to relaunch the script with elevated privileges..."
+
+    $additionalArgs = @()
+
+    if ($OriginalParameters.Count -gt 0) {
+        foreach ($param in $OriginalParameters.GetEnumerator()){
+            $key = $param.Key
+            $value = $param.Value
+
+            if ($value -is [switch]) {
+                if ($value.IsPresent) {
+                    $additionalArgs += "-$key"
+                }
+            } elseif ($value -is $null) {
+                $additionalArgs += "- $key"
+            } else {
+                $formattedValue = "`"$value`""
+                $additionalArgs += "-$key", $formattedValue
+            }
         }
+    }
 
-        Start-Process $cmd -ArgumentList $arguments -Verb RunAs
-        exit
+    $cmdToRun = ""
+    $finalArgumentList = @()
+
+    if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
+        $cmdToRun = "wt.exe"
+        $finalArgumentList = @(
+            "new-tab",
+            "-p",
+            "--",
+            "powershell.exe"
+        ) + $baseArguments + $additionalArgs
+    } else {
+        $cmdToRun = "powershell.exe"
+        $finalArgumentList = $baseArguments + $additionalArgs
+    }
+
+    try {
+        Start-Process $cmdToRun -ArgumentList @($finalArgumentList -split " ") -Verb RunAs -ErrorAction Stop
+        exit 0
+    }
+    catch {
+        Write-Error "Failed to start elevated process: $($_.Exception.Message)"
+        exit 1
     }
 }
 

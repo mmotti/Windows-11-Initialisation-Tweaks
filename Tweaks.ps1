@@ -86,7 +86,7 @@ try {
 
 # ==================== OBTAIN ELEVATION ====================
 
-Get-ElevatedTerminal
+Get-ElevatedTerminal -OriginalParameters $PSBoundParameters
 
 Clear-Host
 

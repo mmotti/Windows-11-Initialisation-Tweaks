@@ -9,7 +9,6 @@ function Get-ElevatedTerminal {
 
     param(
         [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
         [hashtable]$OriginalParameters
     )
 

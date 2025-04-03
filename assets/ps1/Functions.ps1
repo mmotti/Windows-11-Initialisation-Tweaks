@@ -718,7 +718,7 @@ function Get-UserRegistryHive {
         try {
             $null = reg unload $HiveName 2>&1
             if ($LASTEXITCODE -ne 0) {
-                throw "Unable to load the Default user's registry hive."
+                throw "Unable to unload the Default user's registry hive."
             }
             return $true
         }

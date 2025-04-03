@@ -26,7 +26,11 @@
     .\Tweaks.ps1 -DefaultUser
     Runs the script attempting to target the Default User profile where applicable
 
-    .EXAMPLE
+.EXAMPLE
+    .\Tweaks.ps1 -DefaultUser -CustomDefaultUserHive "C:\Data\NTUSER.dat"
+    Runs the script attempting to target a custom Default User profile where applicable.
+
+.EXAMPLE
     .\Tweaks.ps1 -AllUsers
     Runs the script attempting to target all existing user profiles (excluding Default).
 .NOTES
@@ -48,6 +52,18 @@ param(
                Mandatory=$false,
                HelpMessage="Apply settings to the Default User profile template for future new users.")]
     [switch]$DefaultUser,
+    [Parameter(ParameterSetName='DefaultUser',
+               Mandatory=$false,
+               HelpMessage="Specify a custom path for a default user hive.")]
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if ((Test-Path $_ -PathType Leaf) -and $_ -match "\.dat$") {
+            $true
+        } else {
+            throw "Please specify a valid .dat file."
+        }
+    })]
+    [string]$CustomDefaultUserHive,
 
     # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
     [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
@@ -58,6 +74,7 @@ $global:scriptPath = $MyInvocation.MyCommand.Path
 $global:scriptParentDir = Split-Path $global:scriptPath -Parent
 
 $global:DefaultUserOnly = $DefaultUser.IsPresent
+$global:DefaultUserCustomHive = $CustomDefaultUserHive
 $global:AllUsers = $AllUsers.IsPresent
 $global:RegistryTweaksEnabled = $true
 $global:BackupsEnabled = $EnableBackups

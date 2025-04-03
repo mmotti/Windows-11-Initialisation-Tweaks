@@ -9,26 +9,30 @@ This script is a user "initialisation" for a fresh Windows install. The majority
 
 **Note:** If you choose to run this script with the DefaultUser or AllUsers (excludes default) switches, the HKEY_CURRENT_USERS registry entries be converted to the appropriate context. HKEY_LOCAL_MACHINE or other HKEY_USERS entries will apply as normal.
 
-### 1. Open PowerShell and change directory:
+#### 1. Open PowerShell and change directory:
     
     powershell
     cd 'PATH\TO\THE\SCRIPT\DIRECTORY\'
 
-### 2. Run the script in the current user's context:
+#### 2. Run the script in the current user's context:
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 
-#### -- OR --
+##### -- OR --
 
-### Run the script for all existing users (excluding Default):
+#### Run the script for all existing users (excluding Default):
 
     "powershell -ExecutionPolicy Bypass -File ".\Tweaks" -AllUsers
 
-#### -- OR --
+##### -- OR --
 
-### Run the script in the Default user's context (settings to apply to new users):
+#### Run the script in the Default user's context (settings to apply to new users):
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser
+
+#### Run the script in the Default user's context but specify a custom location for the dat file:
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser -CustomDefaultUserHive "PATH\TO\YOUR\FILE.dat"
 
 
 ## Actions

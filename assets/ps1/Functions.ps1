@@ -35,7 +35,7 @@ function Get-ElevatedTerminal {
                 if ($value.IsPresent) {
                     $additionalArgs += "-$key"
                 }
-            } elseif ($value -is $null) {
+            } elseif ($null -eq $value) {
                 $additionalArgs += "- $key"
             } else {
                 $formattedValue = "`"$value`""
@@ -172,7 +172,8 @@ function Import-RegKeys {
             # --- Load Default Hive ONCE if needed ---
             if ($DefaultUser.IsPresent) {
                 Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
-                $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath (Join-Path $env:SystemDrive "Users\Default\NTUSER.dat")
+                $defaultHivePath = if ($null -ne $global:DefaultUserCustomHive) {$global:DefaultUserCustomHive} else {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"}
+                $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath
                 if (-not $defaultHiveWasLoadedSuccessfully) {
                     # Get-UserRegistryHive should write the specific error. We just need to stop.
                     Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
@@ -593,7 +594,9 @@ function Remove-OneDrive {
 
         Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
 
-        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath (Join-Path $env:SystemDrive "Users\Default\NTUSER.dat")) {
+        $defaultHivePath = if ($null -ne $global:DefaultUserCustomHive) {$global:DefaultUserCustomHive} else {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"}
+
+        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
             $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
         }
 

@@ -172,7 +172,7 @@ function Import-RegKeys {
             # --- Load Default Hive ONCE if needed ---
             if ($DefaultUser.IsPresent) {
                 Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
-                $defaultHivePath = if ($null -ne $global:DefaultUserCustomHive) {$global:DefaultUserCustomHive} else {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"}
+                $defaultHivePath = if ([string]::IsNullOrEmpty($global:DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:DefaultUserCustomHive}
                 $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath
                 if (-not $defaultHiveWasLoadedSuccessfully) {
                     # Get-UserRegistryHive should write the specific error. We just need to stop.
@@ -594,7 +594,7 @@ function Remove-OneDrive {
 
         Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
 
-        $defaultHivePath = if ($null -ne $global:DefaultUserCustomHive) {$global:DefaultUserCustomHive} else {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"}
+        $defaultHivePath = if ([string]::IsNullOrEmpty($global:DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:DefaultUserCustomHive}
 
         if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
             $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop

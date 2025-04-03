@@ -27,7 +27,7 @@
     Runs the script attempting to target the Default User profile where applicable
 
 .EXAMPLE
-    .\Tweaks.ps1 -CustomDefaultUserHive "C:\Data\NTUSER.dat"
+    .\Tweaks.ps1 -DefaultUserCustomHive "C:\Data\NTUSER.dat"
     Runs the script attempting to target a custom Default User profile where applicable.
 
 .EXAMPLE
@@ -63,7 +63,7 @@ param(
             throw "Please specify a valid .dat file."
         }
     })]
-    [string]$CustomDefaultUserHive,
+    [string]$DefaultUserCustomHive = $null,
 
     # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
     [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
@@ -78,7 +78,7 @@ $global:scriptPath = $MyInvocation.MyCommand.Path
 $global:scriptParentDir = Split-Path $global:scriptPath -Parent
 
 $global:DefaultUserOnly = [bool]$DefaultUser
-$global:DefaultUserCustomHive = $CustomDefaultUserHive
+$global:DefaultUserCustomHive = if ([string]::IsNullOrEmpty($DefaultUserCustomHive)){$null}else{$DefaultUserCustomHive}
 $global:AllUsers = $AllUsers.IsPresent
 $global:RegistryTweaksEnabled = $true
 $global:BackupsEnabled = $EnableBackups
@@ -92,6 +92,9 @@ $ps1Path, $ps1Functions | ForEach-Object {
         throw "Path not found: $_"
     }
 }
+
+$global:DefaultUserCustomHive -eq $null
+exit
 
 # ==================== IMPORTS ====================
 

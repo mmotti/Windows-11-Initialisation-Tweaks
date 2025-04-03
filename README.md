@@ -1,19 +1,33 @@
 # Windows 11 Initialisation Tweaks
-This script is a user "initialisation" for a fresh Windows install.
-
-The majority of the tweaks apply to the current user's context but in future I may look at options to conditionally apply them to all user profiles and the default user profile.
+This script is a user "initialisation" for a fresh Windows install. The majority of these tweaks will run in the current user's context by default.
 
 **This script requires administrative privileges**.
 
 ![Demonstration of script running.](assets/img/demo.gif)
 
-## Usage
-**Run.bat**
+## Instructions
 
-Or manually:
-```
-powershell.exe -ExecutionPolicy Bypass -File "PATH\TO\YOUR\Tweaks.ps1"
-```
+### 1. Open PowerShell and change directory:
+    
+    powershell
+    cd 'PATH\TO\THE\SCRIPT\DIRECTORY\'
+
+### 2. Run the script in the current user's context:
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
+
+#### -- OR --
+
+### Run the script for all existing users (excluding Default):
+
+    "powershell -ExecutionPolicy Bypass -File ".\Tweaks" -AllUsers
+
+#### -- OR --
+
+### Run the script in the Default user's context (settings to apply to new users):
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser
+
 
 ## Actions
 
@@ -76,7 +90,7 @@ powershell.exe -ExecutionPolicy Bypass -File "PATH\TO\YOUR\Tweaks.ps1"
 
 1. **Remove the Microsoft Edge shortcut from the Public Desktop.**
 
-1. **Notepad settings (current user):**
+1. **Notepad settings:**
     * Open files in a new tab.
     * Start a new session / discard unsaved changes when Notepad starts.
     * WordWrap enabled.
@@ -86,9 +100,10 @@ powershell.exe -ExecutionPolicy Bypass -File "PATH\TO\YOUR\Tweaks.ps1"
 
     Note: Spellcheck option (enabled by default) is not altered as it could exclude file formats in future should they add further support.
 
-1. **Remove OneDrive:**
+1. **Remove OneDrive (current user only):**
     * Scan registry for UninstallStrings and run the uninstallers.
     * Remove "OneDriveSetup" from the default user's registry hive (HKEY_USERS\Default\Software\Microsoft\Windows\CurrentVersion\Run).
+    * Scan for OneDrive in other user profiles and notify if detected.
 
 1. **Windows Update:**
     * Disable "Delivery Optimisation" (Don't allow downloads from other devices).

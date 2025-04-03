@@ -1,8 +1,70 @@
+<#
+.SYNOPSIS
+    Configures and tweaks Windows 11 settings.
+
+.DESCRIPTION
+    This script applies various registry tweaks, sets power plans, manages firewall rules,
+    removes specified shortcuts, configures Notepad, removes OneDrive, and applies a custom wallpaper.
+    It includes options for enabling/disabling registry tweaks and backups, and a switch
+    to indicate intent to modify the default user profile (implementation specifics may vary).
+
+.PARAMETER EnableBackups
+    Enable or disable the creation of backups before applying changes. Defaults to $true.
+    Backups are automatically disabled if running in Windows Sandbox.
+
+.PARAMETER DefaultUser
+    A switch parameter. If present, the script will attempt to apply relevant settings
+    (like specific registry tweaks) to the Default User profile instead of the current user.
+    NOTE: Full implementation for default user requires modifying functions to target the
+    Default User registry hive (NTUSER.DAT) and profile folders. This script provides the structure
+    but may need function adjustments for complete DefaultUser support.
+
+.EXAMPLE
+    .\Tweaks.ps1
+    Runs the script with default settings (Registry Tweaks enabled, Backups enabled, targets current user).
+
+.EXAMPLE
+    .\Tweaks.ps1 -DefaultUser
+    Runs the script attempting to target the Default User profile where applicable
+
+    .EXAMPLE
+    .\Tweaks.ps1 -AllUsers
+    Runs the script attempting to target all existing user profiles.
+    Runs the script attempting to target the Default User profile where applicable.
+.NOTES
+    Author: mmotti (https://github.com/mmotti)
+    Requires Windows 11 (Build 22000+).
+    Ensure the 'assets' folder structure exists relative to the script.
+#>
+
+[CmdletBinding(DefaultParameterSetName='CurrentUser')] # Define the default behavior set
+param(
+    # --- Parameter Set: All Users ---
+    [Parameter(ParameterSetName='AllUsers',
+               Mandatory=$false,
+               HelpMessage="Apply settings to all existing user accounts (excluding Default).")]
+    [switch]$AllUsers,
+
+    # --- Parameter Set: Default User ---
+    [Parameter(ParameterSetName='DefaultUser',
+               Mandatory=$false,
+               HelpMessage="Apply settings to the Default User profile template for future new users.")]
+    [switch]$DefaultUser,
+
+    # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
+    [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
+    [bool]$EnableBackups = $true
+)
+
 $global:scriptPath = $MyInvocation.MyCommand.Path
 $global:scriptParentDir = Split-Path $global:scriptPath -Parent
+
+$global:DefaultUserOnly = $DefaultUser.IsPresent
+$global:AllUsers = $AllUsers.IsPresent
 $global:RegistryTweaksEnabled = $true
-$global:BackupsEnabled = $true
-$global:ScriptRunBackupDir = (Join-Path $global:scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
+$global:BackupsEnabled = $EnableBackups
+$global:BackupDirectory = (Join-Path $global:scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
+
 
 $ps1Path = Join-Path $global:scriptParentDir "assets\ps1"
 $ps1Functions = Join-Path $ps1Path "Functions.ps1"
@@ -51,7 +113,7 @@ if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
 
 if ($global:BackupsEnabled -eq $true) {
     # Initialise the backup folders.
-    New-BackupDirectory -BackupPath $global:ScriptRunBackupDir
+    New-BackupDirectory -BackupPath $global:BackupDirectory
 }
 
 # ==================== STOP EXPLORER ====================
@@ -61,12 +123,18 @@ $explorerStopSuccess = Stop-Explorer
 # ==================== REGISTRY TWEAKS ====================
 
 if ($global:RegistryTweaksEnabled -eq $true) {
+    
     Write-Status -Status ACTION -Message "Starting registry tweaks..."
 
-    $keyArray = Get-ChildItem -Path (Join-Path $global:scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue |
-    Where-Object {$_.DirectoryName -notlike "*\Manual\*"}
+    $keyArray = Get-ChildItem -Path (Join-Path $global:scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
-    Import-RegKeys -KeyArray $keyArray
+    if ($DefaultUser.IsPresent) {
+        Import-RegKeys -KeyArray $keyArray -DefaultUser
+    } elseif ($AllUsers.IsPresent) {
+        Import-RegKeys -KeyArray $keyArray -AllUsers
+    } else {
+        Import-RegKeys -KeyArray $keyArray
+    }
 }
 
 # ==================== SET APPROPRIATE POWER PLAN ====================
@@ -98,10 +166,26 @@ Remove-PublicDesktopShortcuts -ShortcutArray $publicDesktopShortcuts
 
 # ==================== NOTEPAD SETTINGS (CURRENT USER) ====================
 
-if ($global:RegistryTweaksEnabled -eq $true) {
-    if (!(Import-NotepadTweaks -TweakPath (Join-Path $global:scriptParentDir "assets\reg\MISC\Manual\WindowsNotepad"))) {
-        Write-Status -Status FAIL -Message "Failed to apply Notepad tweaks." -Indent 1
+Write-Status -Status ACTION -Message "Processing Notepad settings..." -Indent 1
+try {
+
+    $notepadTweakPath = (Join-Path $global:scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
+    $notepadResult = $false
+
+    if ($AllUsers.IsPresent) {
+        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -AllUsers
+    } elseif ($DefaultUser.IsPresent) {
+        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -DefaultUser
+    } else {
+        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath
     }
+
+    if (-not $notepadResult) {
+        Write-Status -Status WARN -Message "Notepad tweak processing completed with one or more errors." -Indent 1
+    }
+}
+catch {
+    Write-Status -Status FAIL -Message "Failed to apply Notepad tweaks. Error: $($_.Exception.Message)" -Indent 1
 }
 
 # ==================== REMOVE ONEDRIVE ====================
@@ -130,7 +214,7 @@ Update-Desktop
 
 # ==================== CLEAN-UP ====================
 
-Remove-Variable -Name scriptPath, scriptParentDir, RegistryTweaksEnabled, BackupsEnabled, ScriptRunBackupDir -Scope Global -ErrorAction SilentlyContinue
+Remove-Variable -Name scriptPath, scriptParentDir, RegistryTweaksEnabled, BackupsEnabled, ScriptRunBackupDir, DefaultUserOnly, AllUsers -Scope Global -ErrorAction SilentlyContinue
 
 # ==================== DONE ====================
 

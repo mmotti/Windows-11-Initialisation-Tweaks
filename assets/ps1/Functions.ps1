@@ -6,11 +6,11 @@ function Test-IsAdminElevated {
 }
 
 function Get-ElevatedTerminal {
-    
+
     if (!(Test-IsAdminElevated)) {
 
         Write-Status -Status WARN -Message "Attempting to relaunch the script with elevated privileges..."
-    
+
         if (Get-Command wt -ErrorAction SilentlyContinue) {
             $cmd = "wt"
             $arguments = "new-tab -p `"PowerShell`" powershell -NoProfile -ExecutionPolicy Bypass -File `"$global:scriptPath`""
@@ -18,18 +18,28 @@ function Get-ElevatedTerminal {
             $cmd = "powershell"
             $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$global:scriptPath`""
         }
-    
+
         Start-Process $cmd -ArgumentList $arguments -Verb RunAs
         exit
-    } 
+    }
 }
 
 function Import-RegKeys {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='CurrentUser')]
     param (
         [Parameter(Mandatory=$true)]
-        [array]$KeyArray
-    )
+        [System.IO.FileInfo[]]$KeyArray,
+
+        [Parameter(ParameterSetName='AllUsers',
+        Mandatory=$false,
+        HelpMessage="Apply settings to all existing user accounts (excluding Default).")]
+        [switch]$AllUsers,
+
+        [Parameter(ParameterSetName='DefaultUser',
+            Mandatory=$false,
+            HelpMessage="Apply settings to the Default User profile template for future new users.")]
+        [switch]$DefaultUser
+        )
 
     # Sanity check that the required variables etc are definitely in the desired state.
 
@@ -38,34 +48,126 @@ function Import-RegKeys {
         return
     }
 
-    if ($global:BackupsEnabled -eq $true -and !(Test-Path $global:ScriptRunBackupDir)) {
-        Write-Status -Status FAIL -Message "Backup path does not exist: $global:ScriptRunBackupDir" -Indent 1
+    if ($global:BackupsEnabled -eq $true -and !(Test-Path $global:BackupDirectory)) {
+        Write-Status -Status FAIL -Message "Backup path does not exist: $global:BackupDirectory" -Indent 1
         $global:RegistryTweaksEnabled = $false
     }
 
-    $validKeys = $KeyArray | Where-Object {$_ -is [System.IO.FileInfo] -and $_.Name -match "\.reg$"}
+    $validKeys = $KeyArray | Where-Object {$_.Name -match "\.reg$"}
 
-    if ($validKeys) {
+    if (!($validKeys)) {
+        Write-Status -Status WARN "There we no valid .reg files provided to import." -Indent 1
+        return
+    }
 
-        foreach ($key in $validKeys) {
+    if ($AllUsers.IsPresent) {
+        Write-Status -Status ACTION -Message "Starting registry import process (Mode: AllUsers)."
 
-            if ($global:BackupsEnabled -eq $true) {
-                if (!(Export-RegKeys -KeyPath $key.FullName)) {
-                    Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
-                    continue
+        $userSids = Get-AllUserSids
+
+        if ($null -eq $userSids -or $userSids.Count -eq 0) {
+            Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup."
+            return
+        }
+
+        foreach ($sid in $userSids) {
+            Write-Status -Status ACTION -Message "Processing user: $sid" -Indent 1
+
+            foreach ($key in $validKeys) {
+                $originalFilePath = $key.FullName
+                $tempFilePath = $null
+                $importFile = $originalFilePath
+
+                try {
+                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Default -ErrorAction Stop
+                    $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
+
+                    if ($originalContent -ne $modifiedContent) {
+                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid).reg"
+                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Default -ErrorAction Stop
+                        $importFile = $tempFilePath
+                    }
+
+                    if ($global:BackupsEnabled -eq $true) {
+                        if (!(Export-RegKeys -KeyPath $importFile)) {
+                            Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
+                            continue
+                        }
+                    }
+
+                    $result = reg import "$importFile" 2>&1
+
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
+                    } else {
+                        Write-Status -Status OK -Message "$($key.Name)" -Indent 1
+                    }
                 }
-            }
-
-            $result = reg import $key.FullName 2>&1
-
-            if ($LASTEXITCODE -ne 0) {
-                Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
-            } else {
-                Write-Status -Status OK -Message $key.Name -Indent 1
+                catch {
+                   Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) "
+                }
+                finally {
+                    if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
+                        Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                    }
+                }
             }
         }
     } else {
-        Write-Status -Status FAIL "There are no items to import." -Indent 1
+        $mode = if ($DefaultUser.IsPresent) {"DefaultUser"} else {"CurrentUser"}
+        Write-Status -Status ACTION -Message "Starting registry import process (Mode: $mode)."
+
+        foreach ($key in $validKeys) {
+            $originalFilePath = $key.FullName
+            $tempFilePath = $null
+            $importFile = $originalFilePath
+            $defaultUserHiveLoaded = $false
+
+            try {
+                if ($DefaultUser.IsPresent) {
+
+                    $defaultUserHiveLoaded = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath (Join-Path $env:SystemDrive "Users\Default\NTUSER.dat")
+
+                    if ($defaultUserHiveLoaded -eq $false) {
+                        throw "Unable to load the Default user's registry hive."
+                    }
+
+                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Default -ErrorAction Stop
+                    if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
+                        $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
+                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid).reg"
+                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Default -ErrorAction Stop
+                        $importFile = $tempFilePath
+                    }
+                }
+
+                if ($global:BackupsEnabled -eq $true) {
+                    if (!(Export-RegKeys -KeyPath $importFile)) {
+                        Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
+                        continue
+                    }
+                }
+
+                $result = reg import "$importFile" 2>&1
+
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
+                } else {
+                    Write-Status -Status OK -Message "$($key.Name)" -Indent 1
+                }
+            }
+            catch {
+                Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) "
+            }
+            finally {
+                if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
+                    Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                }
+                if ($DefaultUser.IsPresent -and $defaultUserHiveLoaded) {
+                    $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
+                }
+            }
+        }
     }
 }
 
@@ -83,11 +185,11 @@ function Export-RegKeys {
         return $true
     }
 
-    if (!(Test-Path -Path $global:ScriptRunBackupDir)) {
+    if (!(Test-Path -Path $global:BackupDirectory)) {
         return $false
     }
 
-    $regFileContents = Get-Content -Path $KeyPath -ErrorAction SilentlyContinue
+    $regFileContents = Get-Content -Path $KeyPath -Raw -Encoding Default -ErrorAction SilentlyContinue
 
     if ($regFileContents) {
 
@@ -110,14 +212,14 @@ function Export-RegKeys {
                     $friendlyFileName = "${friendlyFileName}.reg"
                 }
 
-                $null = reg export $keyRegPath "$global:ScriptRunBackupDir\$friendlyFileName" /y 2>&1
+                $null = reg export $keyRegPath "$global:BackupDirectory\$friendlyFileName" /y 2>&1
 
                 if ($LASTEXITCODE -eq 0) {
                     $script:BackedUpRegistryPaths += $_.Groups[1].Value
                 } else {
                     return $false
                 }
-            } 
+            }
         }
     }
 
@@ -181,7 +283,7 @@ function New-BackupDirectory {
     if (!(Test-Path -Path $BackupPath)) {
 
         try {
-            New-Item -ItemType Directory -Path $BackupPath -ErrorAction Stop | Out-Null
+            New-Item -Path $BackupPath -ItemType Directory -ErrorAction Stop | Out-Null
             Write-Status -Status OK -Message "Registry backup directory initialised:" -Indent 1
             Write-Status -Status INFO -Message $BackupPath -Indent 1
         }
@@ -282,106 +384,115 @@ function Set-PowerPlan {
 }
 
 function Import-NotepadTweaks {
-    param (
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$TweakPath
-    )
 
-    if (!(Test-Path -Path $TweakPath)) {
+    [CmdletBinding(DefaultParameterSetName='CurrentUser')]
+    param (
+
+        [Parameter(ParameterSetName='AllUsers',
+        Mandatory=$false,
+        HelpMessage="Apply settings to all existing user accounts (excluding Default).")]
+        [switch]$AllUsers,
+
+        [Parameter(ParameterSetName='DefaultUser',
+            Mandatory=$false,
+            HelpMessage="Apply settings to the Default User profile template for future new users.")]
+        [switch]$DefaultUser,
+
+        [Parameter(Mandatory=$true,
+                    HelpMessage="Location of your tweaked settings file.")]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({
+            $fileName = Split-Path -Path $_ -Leaf
+            if ($fileName -eq 'settings.dat') {
+                $true
+            } else {
+                throw "The file specified by TweakPath must be named 'settings.dat'. Found: '$fileName'"
+            }
+        })]
+        [string]$TweakPath
+        )
+
+    if (!(Test-Path -Path $TweakPath -PathType Leaf)) {
         Write-Status -Status FAIL -Message "Path not found: $TweakPath"
         return $false
     }
 
-    $keyArray = Get-ChildItem -Path $TweakPath -Include *.reg -Recurse -ErrorAction SilentlyContinue
+    Write-Status -Status ACTION -Message "Checking for Notepad..."
 
-    if ($keyArray) {
+    $appxPackage = Get-AppxPackage -Name "Microsoft.WindowsNotepad" -ErrorAction SilentlyContinue
 
-        $notepadHiveLoaded = $false
+    if (!$appxPackage) {
+        Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
+        return $false
+    }
 
+    $notepadRelativePath = "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
+
+    $targetBasePaths = @()
+
+    switch ($PSCmdlet.ParameterSetName) {
+        'AllUsers' {
+            $targetBasePaths = Get-AllUserProfilePaths | ForEach-Object { Join-Path $_ "AppData\Local" }
+            if ($targetBasePaths.Count -eq 0) {
+                 Write-Status -Status WARN -Message "No user profile paths found for AllUsers mode." -Indent 1
+                 return $false
+            }
+             Write-Status -Status INFO -Message "Targeting $($targetBasePaths.Count) user profiles." -Indent 1
+        }
+        'DefaultUser' {
+            $targetBasePaths += Join-Path "$env:SystemDrive\Users\Default" "AppData\Local"
+            Write-Status -Status INFO -Message "Targeting Default User profile." -Indent 1
+        }
+        'CurrentUser' { # Default case
+            $targetBasePaths += $env:LOCALAPPDATA
+            Write-Status -Status INFO -Message "Targeting Current User profile." -Indent 1
+        }
+    }
+
+    $getNotepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
+
+    if (& $getNotepadProcess) {
+
+        Write-Status -Status WARN "Please close Notepad to continue (ALT+TAB to the window)." -Indent 1
+        Write-Status -Status WARN "If another user has Notepad open, use CTRL + SHIFT + ESC and force close all Notepad tasks." -Indent 1
+
+        while (& $getNotepadProcess) {
+            Start-Sleep -Milliseconds 500
+        }
+
+        Write-Status -Status OK -Message "Notepad process closed." -Indent 1
+    } else {
+        Write-Status -Status OK -Message "No Notepad process detected." -Indent 1
+    }
+
+    $errorCount = 0
+    foreach ($basePath in $targetBasePaths) {
+
+        $destinationPath = Join-Path $basePath $notepadRelativePath
+        $destinationDir = Split-Path $destinationPath -Parent
+        
         try {
 
-            Write-Status -Status ACTION -Message "Checking for Notepad..."
-
-            $appxPackage = Get-AppxPackage -Name "Microsoft.WindowsNotepad" -ErrorAction SilentlyContinue
-
-            if (!$appxPackage) {
-                Write-Status -Status WARN -Message "Notepad is not installed." -Indent 1
-                return $false
+            if (!(Test-Path -Path $destinationDir)) {
+                New-Item -Path $destinationDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
             }
 
-            Write-Status -Status OK -Message "Notepad is installed." -Indent 1
-
-            $notepadHive = Join-Path $env:LOCALAPPDATA "Packages\$($appxPackage.PackageFamilyName)\Settings\settings.dat"
-
-            if (!(Test-Path -Path $notepadHive)) {
-                Write-Status -Status FAIL -Message "Path not found: $notepadHive" -Indent 1
-                return $false
-            }
-
-            Write-Status -Status OK -Message "Notepad user hive and configuration file detected." -Indent 1
-
-            $getNotepadProcess = {Get-Process -Name Notepad -ErrorAction SilentlyContinue}
-
-            if (& $getNotepadProcess) {
-
-                Write-Status -Status WARN "Please close Notepad to continue (ALT+TAB to the window)." -Indent 1
-
-                while (& $getNotepadProcess) {
-                    Start-Sleep -Milliseconds 500
-                }
-            }
-
-            Write-Status -Status OK -Message "Notepad process killed." -Indent 1
-
-            Write-Status -Status ACTION -Message "Loading Notepad registry hive: `"$notepadHive`"" -Indent 1
-            $null = reg load HKU\WindowsNotepad $notepadHive 2>&1
-
-            if ($LASTEXITCODE -eq 0) {
-                $notepadHiveLoaded = $true
-                Write-Status -Status OK -Message "Hive loaded." -Indent 1
-            } else {
-                Write-Status -Status FAIL -Message "Failed to load hive." -Indent 1
-                return $false
-            }
-
-            Write-Status -Status ACTION -Message "Importing Notepad tweaks (current user)..." -Indent 1
-
-            Import-RegKeys -KeyArray $keyArray
-
-            return $true
+            Write-Status -Status ACTION -Message "Copying file to: $destinationPath " -Indent 1
+            Copy-Item $TweakPath $destinationPath -Force -ErrorAction Stop
+            Write-Status -Status OK -Message "File copied successfully." -Indent 1
         }
         catch {
-            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+            $errorCount++
+            Write-Status -Status FAIL -Message "File copy failed." -Indent 1
         }
+    }
 
-        finally {
-            if ($notepadHiveLoaded) {
-                Write-Status -Status ACTION -Message "Unloading Notepad registry hive..." -Indent 1
-                $null = reg unload HKU\WindowsNotepad 2>&1
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Status -Status OK -Message "Hive unloaded." -Indent 1
-
-                    # Notepad needs to start / exit to apply settings.
-                    if (!(&$getNotepadProcess)) {
-                        Write-Status -Status ACTION -Message "Cycling Notepad to apply settings..." -Indent 1
-                        try {
-                            Start-Process Notepad
-                            while (!($getNotepadProcess)) {
-                                Start-Sleep -Milliseconds 500
-                            }
-                            Stop-Process -Name Notepad -Force
-                            Write-Status -Status OK -Message "Notepad cycled successfully." -Indent 1
-                        }
-                        catch {
-                            Write-Status -Status FAIL -Message "An error occurred whilst attempting to cycle Notepad: $($_.Exception.Message)" -Indent 1
-                        }
-                    }
-                } else {
-                    Write-Status -Status FAIL -Message "Error code $LASTEXITCODE received when unloading hive." -indent 1
-                }
-            }
-        }
+    if ($errorCount -eq 0) {
+        Write-Status -Status OK -Message "Notepad settings file copy process completed successfully." -Indent 1
+        return $true
+    } else {
+        Write-Status -Status WARN -Message "Notepad settings file copy process failed for one or more users." -Indent 1
+        return $false
     }
 }
 
@@ -396,10 +507,12 @@ function Remove-OneDrive {
         "HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
         "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
         "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
-    ) | Sort-Object -Unique | Where-Object {Test-Path $_}
+    ) | Sort-Object -Unique
 
-    if ($oneDriveInstallations) {
-        $oneDriveInstallations | ForEach-Object {
+    $currentUserOneDriveInstallations = $oneDriveInstallations | Where-Object {Test-Path $_}
+
+    if ($currentUserOneDriveInstallations) {
+        $currentUserOneDriveInstallations | ForEach-Object {
             $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
             if ($uninstallString){
                 Write-Status -Status ACTION -Message "Executing: $uninstallString" -Indent 1
@@ -419,12 +532,8 @@ function Remove-OneDrive {
 
         Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
 
-        $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
-
-        $null = reg load HKU\TempDefault C:\users\Default\NTUSER.DAT 2>&1
-
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to load the default user's registry hive."
+        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath (Join-Path $env:SystemDrive "Users\Default\NTUSER.dat")) {
+            $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
         }
 
         $hiveLoaded = $true
@@ -453,9 +562,159 @@ function Remove-OneDrive {
             Remove-PSDrive -Name HKU
         }
         if ($hiveLoaded) {
-            $null = reg unload HKU\TempDefault 2>&1
+            $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
         }
     }
+
+    # Check for OneDrive in other user profiles
+
+    $oneDriveHKCUPathsToCheck = $oneDriveInstallations | Where-Object {$_ -match "^HKCU:"}
+
+    if ($oneDriveHKCUPathsToCheck) {
+
+        Write-Status -Status ACTION -Message "Checking whether OneDrive is installed for other users..." -Indent 1
+
+        $hkuDrive = $null
+        $foundOneDriveInHKCU = $false
+
+        try {
+
+            $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+
+            $userSids = Get-AllUserSids
+
+            if ($null -eq $userSids -or $userSids.Count -eq 0) {
+                write-Status -Status WARN -Message "Unable to query user sids." -Indent 1
+                return
+            }
+
+            $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            $userSids = $userSids | Where-Object {$_ -ne $currentSid}
+
+
+            :CheckOneDriveKeysLoop
+            foreach ($path in $oneDriveHKCUPathsToCheck) {
+                    foreach ($sid in $userSids) {
+
+                        $targetHKUPath = $path -replace "^HKCU:", "HKU:\$sid"
+
+                        if (Test-Path -Path $targetHKUPath) {
+                            $foundOneDriveInHKCU = $true
+                            Write-Status -Status WARN -Message "OneDrive has been detected in other user profiles. You will need to run this script again in their context to remove it." -Indent 1
+                            break CheckOneDriveKeysLoop
+                        }
+                    }
+            }
+
+            if (!($foundOneDriveInHKCU)) {
+                Write-Status -Status OK -Message "OneDrive has not been detected in other user profiles." -Indent 1
+            }
+        }
+        catch {
+            Write-Status -Status FAIL -Message "An error occured during the OneDrive check: $($_.Exception.Message)"
+        }
+        finally {
+            if ($null -ne $hkuDrive) {
+                Remove-PSDrive -Name HKU
+            }
+        }
+    }
+}
+
+function Get-UserRegistryHive {
+
+    [CmdletBinding(DefaultParameterSetName='Load')] # Default set is Load
+    param (
+        # --- Parameter Set: Load ---
+        [Parameter(Mandatory=$true,
+                   ParameterSetName='Load',
+                   HelpMessage="Loads the specified registry hive.")]
+        [switch]$Load,
+
+        [Parameter(Mandatory=$true,
+                   ParameterSetName='Load',
+                   HelpMessage="The temporary name to assign the loaded hive under HKU (e.g., TempDefault).")]
+        [ValidateNotNullOrEmpty()]
+        [string]$HivePath,
+
+        # --- Parameter Set: Unload ---
+        [Parameter(Mandatory=$true,
+                   ParameterSetName='Unload',
+                   HelpMessage="Unloads the specified registry hive.")]
+        [switch]$Unload,
+
+        # --- Common Parameter (Available in BOTH sets) ---
+
+        [Parameter(Mandatory=$true,
+                   HelpMessage="The temporary name to assign the loaded hive under HKU (e.g., TempDefault).")]
+        [ValidateNotNullOrEmpty()]
+        [string]$HiveName
+    )
+    
+    if ($HiveName -notmatch "^HKU\\") {
+        Write-Status -Status FAIL -Message "Hive name must match HKU\" -Indent 1
+        return $false
+    }
+
+    if ($Load.IsPresent) {
+        if (!(Test-Path -Path $HivePath -PathType Leaf)) {
+            Write-Status -Status FAIL -Message "Path not found: $HivePath" -Indent 1
+            return $false
+        }
+    }
+
+    # We need to check whether the HKU:\TempDefault hive is already loaded or we will encounter errors.
+
+    try {
+        $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+        if (Test-Path -Path "HKU:\$HiveName") {
+            return $true
+        }
+    }
+    catch {
+        Write-Status -Status FAIL -Message "Unable to create PSDrive: $($_.Exception.Message)" -Indent 1
+        return $false
+    }
+    finally {
+        if ($hkuDrive) {
+            try {
+                $hkuDrive | Remove-PSDrive
+            }
+            catch {
+                Write-Status -Status FAIL -Message "Failed to remove PSDrive: $($_.Exception.Message)"
+            }
+        }
+    }
+
+    if ($Load.IsPresent) {
+        try {
+            $null = reg load $HiveName "$HivePath" 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Unable to load the Default user's registry hive."
+            }
+            return $true
+        }
+        catch {
+            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+            return $false
+        }
+
+    } elseif ($Unload.IsPresent) {
+
+        try {
+            $null = reg unload $HiveName 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Unable to load the Default user's registry hive."
+            }
+            return $true
+        }
+        catch {
+            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+            return $false
+        }
+    }
+
+    return $false
 }
 
 function Stop-Explorer {
@@ -513,6 +772,50 @@ function Start-Explorer {
     Write-Status -Status OK -Message "Explorer restarted." -Indent 1
 }
 
+function Get-AllUserSids {
+
+    try {
+         $profileList = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction Stop
+         if ($null -eq $profileList) {
+            return @()
+         }
+    }
+    catch {
+        Write-Status -Status FAIL -Message "Unable to query user sids." -Indent 1
+        return @()
+    }
+
+    return $profileList | Where-Object {$_.PSChildName -notmatch "^(S-1-5-(18|19|20)|\.DEFAULT)$"} | Select-Object -ExpandProperty PSChildName
+}
+
+function Get-AllUserProfilePaths {
+
+    try {
+        $profileList = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction Stop
+        if ($null -eq $profileList) {
+           return @()
+        }
+   }
+   catch {
+       Write-Status -Status FAIL -Message "Unable to query user sids." -Indent 1
+   }
+
+   $filteredProfiles = $profileList | Where-Object {
+    $profilePath = $null
+    try {$profilePath = $_.GetValue("ProfileImagePath", $null)} catch {}
+    $_.PSChildName -notmatch "^(S-1-5-(18|19|20)|\.DEFAULT)$" -and 
+    $null -ne $profilePath -and
+    (Test-Path -Path $profilePath -PathType Container)
+   }
+
+   if ($null -eq $profileList -or $filteredProfiles.Count -eq 0) {
+       Write-Status -Status FAIL -Message "No sids were returned."
+       return @()
+   }
+
+   return $filteredProfiles | ForEach-Object {$_.GetValue("ProfileImagePath")}
+}
+
 function Remove-PublicDesktopShortcuts {
     [CmdletBinding()]
     param (
@@ -523,9 +826,9 @@ function Remove-PublicDesktopShortcuts {
     if (@($ShortcutArray).Count -gt 0) {
 
         Write-Status -Status ACTION -Message "Processing Public Desktop shortcuts..."
-    
+
         $ShortcutArray |
-        ForEach-Object { Join-Path "$env:SYSTEMDRIVE\Users\Public\Desktop" $_ } |
+        ForEach-Object { Join-Path "$env:SystemDrive\Users\Public\Desktop" $_ } |
         Where-Object { (Test-Path $_) -and $_ -match "\.lnk$" } |
         ForEach-Object {
             try {
@@ -553,14 +856,14 @@ function Update-Wallpaper {
 }
 
 function Update-Desktop {
-    
+
     while ([RefreshDesktop]::FindWindow("Progman", "Program Manager") -eq [IntPtr]::Zero) {
         Start-Sleep -Milliseconds 500
         continue
     }
-    
+
     Write-Status -Status ACTION -Message "Refreshing desktop..."
-    
+
     [RefreshDesktop]::Refresh()
 }
 

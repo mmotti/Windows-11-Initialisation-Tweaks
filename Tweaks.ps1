@@ -59,7 +59,9 @@ param(
     [ValidateScript({
         # Accommodate for some validation, especially if this parameter wasn't explicitly specified, but included as part of the
         # parameter set.
-        if (($_ -eq "" -or ((Test-Path $_ -PathType Leaf) -and $_ -match "\.dat$"))) {
+        if ([string]::IsNullOrEmpty($_)) {
+            $true
+        } elseif ((Test-Path $_ -PathType Leaf) -and $_ -match "\.dat$") {
             $true
         } else {
             throw "Please specify a valid .dat file."
@@ -72,7 +74,9 @@ param(
     [bool]$EnableBackups = $true
 )
 
-if ($PSBoundParameters.ContainsKey("CustomDefaultUserHive")) {
+Clear-Host
+
+if ($PSBoundParameters.ContainsKey("DefaultUserCustomHive")) {
     $DefaultUser = $true
 }
 
@@ -80,7 +84,11 @@ $global:scriptPath = $MyInvocation.MyCommand.Path
 $global:scriptParentDir = Split-Path $global:scriptPath -Parent
 
 $global:DefaultUserOnly = [bool]$DefaultUser
-$global:DefaultUserCustomHive = if ([string]::IsNullOrEmpty($DefaultUserCustomHive)){$null}else{$DefaultUserCustomHive}
+
+if (![string]::IsNullOrWhiteSpace($DefaultUserCustomHive)) {
+    $global:DefaultUserCustomHive = $DefaultUserCustomHive
+}
+
 $global:AllUsers = $AllUsers.IsPresent
 $global:RegistryTweaksEnabled = $true
 $global:BackupsEnabled = $EnableBackups
@@ -109,8 +117,6 @@ try {
 # ==================== OBTAIN ELEVATION ====================
 
 Get-ElevatedTerminal -OriginalParameters $PSBoundParameters
-
-Clear-Host
 
 # ==================== PREREQUISITES CHECK ====================
 

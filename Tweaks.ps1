@@ -214,7 +214,15 @@ catch {
 
 # ==================== REMOVE ONEDRIVE ====================
 
-Remove-OneDrive
+$argParams = @{}
+
+if ($global:g_DefaultUserOnly) {
+    $argParams.DefaultUser = $true
+} elseif ($global:g_AllUsers) {
+    $argParams.AllUsers = $true
+}
+
+Remove-OneDrive @argParams
 
 # ==================== RESURRECT EXPLORER ====================
 

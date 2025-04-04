@@ -70,6 +70,50 @@ function Get-ElevatedTerminal {
     }
 }
 
+function Get-HKUDrive {
+
+    [CmdletBinding(DefaultParameterSetName='Load')] # Default set is Load
+    param (
+        # --- Parameter Set: Load ---
+        [Parameter(Mandatory=$true,
+                   ParameterSetName='Load',
+                   HelpMessage="Loads the specified registry hive.")]
+        [switch]$Load,
+
+        # --- Parameter Set: Unload ---
+        [Parameter(Mandatory=$true,
+                   ParameterSetName='Unload',
+                   HelpMessage="Unloads the specified registry hive.")]
+        [switch]$Unload
+    )
+    
+    switch ($PSCmdlet.ParameterSetName) {
+        "Load" {
+            try {
+                if (!(Get-PSdrive -Name HKU -ErrorAction SilentlyContinue)) {
+                    $null = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+                }
+            }
+            catch {
+                throw "Unable to load PSDrive: $($_.Exception.Message)"
+            }
+        }
+        "Unload" {
+            try {
+                if (Get-PSdrive -Name HKU -ErrorAction SilentlyContinue) {
+                    $null = Remove-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+                }
+            }
+            catch {
+                throw "Unable to unload PSDrive: $($_.Exception.Message)"
+            }
+        }
+        default {
+            throw "Unexpected ParameterSet. Unable to continue."
+        }
+    }
+}
+
 function Import-RegKeys {
     [CmdletBinding(DefaultParameterSetName='CurrentUser')]
     param (
@@ -85,7 +129,7 @@ function Import-RegKeys {
             Mandatory=$false,
             HelpMessage="Apply settings to the Default User profile template for future new users.")]
         [switch]$DefaultUser
-        )
+    )
 
     # Sanity check that the required variables etc are definitely in the desired state.
 
@@ -171,7 +215,6 @@ function Import-RegKeys {
 
             try {
 
-                # --- Load Default Hive ONCE if needed ---
                 if ($_ -eq "DefaultUser") {
                     Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
                     $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
@@ -181,7 +224,7 @@ function Import-RegKeys {
                         Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
                         return # Exit function if hive load fails
                     }
-                    Write-Status -Status OK -Message "Default User hive loaded successfully to $defaultHiveMountPoint." -Indent 1
+                    Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
                 }
 
                 foreach ($key in $validKeys) {
@@ -236,7 +279,7 @@ function Import-RegKeys {
 
         default {
             Write-Status -Status FAIL -Message "Unexpected ParameterSet. Unable to continue." -Indent 1
-            exit
+            return
         }
     }
 }
@@ -567,130 +610,198 @@ function Import-NotepadTweaks {
 }
 
 function Remove-OneDrive {
+    [CmdletBinding(DefaultParameterSetName='CurrentUser')]
+    param (
 
-    # Standard OneDrive entries.
+        [Parameter(ParameterSetName='AllUsers',
+        Mandatory=$true,
+        HelpMessage="Search the HKCU hives for OneDrive installations.")]
+        [switch]$AllUsers,
 
-    Write-Status -Status ACTION -Message "Checking for OneDrive installations..."
+        [Parameter(ParameterSetName='DefaultUser',
+            Mandatory=$true,
+            HelpMessage="Search the Default user's registry hive.")]
+        [switch]$DefaultUser
+    )
 
-    $oneDriveInstallations = @(
+        # Sanity check
+        $mode = $PSCmdlet.ParameterSetName
+        if ([string]::IsNullOrEmpty($mode)) {
+            Write-Status -Status FAIL -Message "Unexpected parameter conditions." -Indent 1
+            return
+        }
+
+        Write-Status -Status ACTION -Message "Looking for OneDrive (Mode: $mode)"
+
+        $oneDriveInstallations = @(
         "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
         "HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
         "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe",
         "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
-    ) | Sort-Object -Unique
+        ) | Sort-Object -Unique
 
-    $currentUserOneDriveInstallations = $oneDriveInstallations | Where-Object {Test-Path $_}
-
-    if ($currentUserOneDriveInstallations) {
-        $currentUserOneDriveInstallations | ForEach-Object {
-            $uninstallString = Get-ItemPropertyValue -Path $_ -Name "UninstallString" -ErrorAction SilentlyContinue
-            if ($uninstallString){
-                Write-Status -Status ACTION -Message "Executing: $uninstallString" -Indent 1
-                Start-Process cmd -ArgumentList "/c $uninstallString" -Wait
-            }
-        }
-    } else {
-        Write-Status -Status OK -Message "No OneDrive installations detected." -Indent 1
-    }
-
-    # Default user registry hive.
-
-    try {
-
-        $oneDriveKeyValue = "OneDriveSetup"
-        $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
-
-        Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
-
-        $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
-
-        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
-            $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
-        }
-
-        $hiveLoaded = $true
-
-        $oneDriveDefaultUserSetup = Get-ItemProperty -Path $defaultUserRunPath -Name $oneDriveKeyValue -ErrorAction SilentlyContinue
-
-        if ($oneDriveDefaultUserSetup) {
-            try {
-                Write-Status -Status ACTION -Message "Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "HKU:", "HKEY_USERS")" -Indent 1
-                $oneDriveDefaultUserSetup | Remove-ItemProperty -Name $oneDriveKeyValue -Force
-                Write-Status -Status OK -Message "Registry key removed." -Indent 1
-            }
-            catch {
-                throw "Failed to remove $oneDriveKeyValue"
-            }
-        } else {
-            Write-Status -Status OK -Message "No `"$oneDriveKeyValue`" detected in the default user's registry hive." -Indent 1
-        }
-
-    }
-    catch {
-        Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
-    }
-    finally {
-        if ($hkuDrive) {
-            Remove-PSDrive -Name HKU
-        }
-        if ($hiveLoaded) {
-            $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
-        }
-    }
-
-    # Check for OneDrive in other user profiles
-
-    $oneDriveHKCUPathsToCheck = $oneDriveInstallations | Where-Object {$_ -match "^HKCU:"}
-
-    if ($oneDriveHKCUPathsToCheck) {
-
-        Write-Status -Status ACTION -Message "Checking whether OneDrive is installed for other users..." -Indent 1
-
-        $hkuDrive = $null
-        $foundOneDriveInHKCU = $false
+        $hiveLoaded = $false
 
         try {
 
-            $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+            switch ($PSCmdlet.ParameterSetName) {
+                {$_ -eq "CurrentUser" -or $_ -eq "AllUsers"} {
 
-            $userSids = Get-AllUserSids
+                    $mode = $_
 
-            if ($null -eq $userSids -or $userSids.Count -eq 0) {
-                write-Status -Status WARN -Message "Unable to query user sids." -Indent 1
-                return
-            }
+                    $uninstallActionBlock = {
+                        
+                        $currentRegistryPath = $_
 
-            $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-            $userSids = $userSids | Where-Object {$_ -ne $currentSid}
+                        if ([string]::IsNullOrWhiteSpace($currentRegistryPath)) {
+                            return
+                        }
 
+                        $uninstallString = $null
 
-            :CheckOneDriveKeysLoop
-            foreach ($path in $oneDriveHKCUPathsToCheck) {
-                    foreach ($sid in $userSids) {
+                        try {
+                            $uninstallString = Get-ItemPropertyValue -Path $currentRegistryPath -Name "UninstallString" -ErrorAction SilentlyContinue
 
-                        $targetHKUPath = $path -replace "^HKCU:", "HKU:\$sid"
-
-                        if (Test-Path -Path $targetHKUPath) {
-                            $foundOneDriveInHKCU = $true
-                            Write-Status -Status WARN -Message "OneDrive has been detected in other user profiles. You will need to run this script again in their context to remove it." -Indent 1
-                            break CheckOneDriveKeysLoop
+                            if ($uninstallString) {
+                                Write-Status -Status ACTION -Message "Executing: $uninstallString" -Indent 1
+                                $argList = "/c `"$uninstallString`""
+                                Start-Process cmd -ArgumentList $argList -Wait -ErrorAction Stop
+                            }
+                        }
+                        catch {
+                            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
                         }
                     }
-            }
 
-            if (!($foundOneDriveInHKCU)) {
-                Write-Status -Status OK -Message "OneDrive has not been detected in other user profiles." -Indent 1
+                    $currentUserOneDriveInstallations = $oneDriveInstallations | Where-Object {$_ -match "^HKCU:" -and (Test-Path -Path $_)}
+
+                    if ($currentUserOneDriveInstallations) {
+                        Write-Status -Status INFO -Message "OneDrive installation detected within HKCU (Mode: $mode)" -Indent 1
+                        $currentUserOneDriveInstallations | ForEach-Object -Process $uninstallActionBlock
+                    } else {
+                        Write-Status -Status OK -Message "No OneDrive installations detected within HKCU." -Indent 1
+                    }
+
+                    if ($mode -eq "AllUsers") {
+                        
+                        # First check for HKLM, run the uninstallers.
+                        # Then check other user profiles for OneDrive entries and notify if found.
+
+                        $localMachineOneDriveInstallations = $oneDriveInstallations | Where-Object {$_ -match "^HKLM:" -and (Test-Path -Path $_)}
+
+                        if ($localMachineOneDriveInstallations) {
+                            Write-Status -Status INFO -Message "OneDrive installation detected within HKLM (Mode: $mode)" -Indent 1
+                            $localMachineOneDriveInstallations | ForEach-Object -Process $uninstallActionBlock
+                        } else {
+                            Write-Status -Status OK -Message "No OneDrive installations detected within HKLM." -Indent 1
+                        }
+
+                        $oneDriveHKCUPathsToCheck = $oneDriveInstallations | Where-Object {$_ -match "^HKCU:"}
+
+                        if ($oneDriveHKCUPathsToCheck) {
+
+                            Write-Status -Status ACTION -Message "Checking whether OneDrive is installed for other users..." -Indent 1
+
+                            $foundOneDriveForOthers = $false
+
+                            try {
+
+                                Get-HKUDrive -Load
+
+                                $userSids = Get-AllUserSids
+
+                                if ($null -eq $userSids -or $userSids.Count -eq 0) {
+                                    write-Status -Status WARN -Message "Unable to query user sids." -Indent 1
+                                    return
+                                }
+
+                                $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+                                $otherUserSids = $userSids | Where-Object {$_ -ne $currentSid}
+
+                                foreach ($path in $oneDriveHKCUPathsToCheck) {
+                                        foreach ($sid in $otherUserSids) {
+                                            $targetHKUPath = $path -replace "^HKCU:", "HKU:\$sid"
+                                            if (Test-Path -Path $targetHKUPath) {
+                                                
+                                                $userIdentifier = $sid
+                                                try {
+                                                    $sidObject = [System.Security.Principal.SecurityIdentifier]::new($sid)
+                                                    $ntAccount = $sidObject.Translate([System.Security.Principal.NTAccount])
+                                                    $userIdentifier = $ntAccount.Value
+                                                } catch [System.Security.Principal.IdentityNotMappedException]{
+                                                    # Unable to map sid to NT account. Just catch but don't do anything.
+                                                } catch {
+                                                    Write-Status -Status WARN -Message "Unexpected error translating SID ($sid): $($_.Exception.Message)" -Indent 1
+                                                }
+                                                
+                                                $foundOneDriveForOthers = $true
+                                                Write-Status -Status WARN -Message "OneDrive detected for user: $userIdentifier" -Indent 1
+                                            }
+                                        }
+                                }
+
+                                if ($foundOneDriveForOthers) {
+                                    Write-Status -Status WARN -Message "You will need to run this script in the other user contexts to remove OneDrive fully." -Indent 1
+                                } else {
+                                    Write-Status -Status OK -Message "OneDrive has not been detected in any other user profiles." -Indent 1
+                                }
+                            }
+                            catch {
+                                Write-Status -Status FAIL -Message "An error occurred during the OneDrive check: $($_.Exception.Message)"
+                            }
+                        }
+                    }
+                }
+                "DefaultUser" {
+                    try {
+    
+                        $oneDriveKeyValue = "OneDriveSetup"
+                        $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"            
+                        $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
+
+                        Write-Status -Status ACTION -Message "Loading the Default user's registry hive..." -Indent 1
+            
+                        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
+                            Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
+                            Get-HKUDrive -Load
+                        } else {
+                            Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded."
+                            return
+                        }
+            
+                        $hiveLoaded = $true
+
+                        $oneDriveDefaultUserSetup =  Get-ItemProperty -Path $defaultUserRunPath -Name $oneDriveKeyValue -ErrorAction SilentlyContinue
+
+                        if ($oneDriveDefaultUserSetup) {
+                            try {
+                                Write-Status -Status ACTION -Message "Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "HKU:", "HKEY_USERS")" -Indent 1
+                                $oneDriveDefaultUserSetup | Remove-ItemProperty -Name $oneDriveKeyValue -Force
+                                Write-Status -Status OK -Message "Registry key removed." -Indent 1
+                            }
+                            catch {
+                                throw "Failed to remove $oneDriveKeyValue"
+                            }
+                        } else {
+                            Write-Status -Status OK -Message "No `"$oneDriveKeyValue`" detected in the default user's registry hive." -Indent 1
+                        }
+                    }
+                    catch {
+                        Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+                    }
+                }
+                default {
+                    Write-Status -Status FAIL -Message "Unexpected parameter conditions." -Indent 1
+                    return
+                }
             }
-        }
-        catch {
-            Write-Status -Status FAIL -Message "An error occured during the OneDrive check: $($_.Exception.Message)"
         }
         finally {
-            if ($null -ne $hkuDrive) {
-                Remove-PSDrive -Name HKU
+            Get-HKUDrive -Unload
+            if ($hiveLoaded) {
+                $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
             }
         }
-    }
 }
 
 function Get-UserRegistryHive {
@@ -732,7 +843,7 @@ function Get-UserRegistryHive {
     $mode = $PSCmdlet.ParameterSetName
     if ([string]::IsNullOrWhiteSpace($mode)) {
         Write-Status -Status FAIL -Message "Unexpected parameter conditions." -Indent 1
-        exit
+        return
     }
 
     if ($mode -eq "Load") {
@@ -745,7 +856,7 @@ function Get-UserRegistryHive {
     # We need to check whether the HKU:\TempDefault hive is already loaded or we will encounter errors.
 
     try {
-        $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
+        Get-HKUDrive -Load
         if (Test-Path -Path "HKU:\$HiveName") {
             return $true
         }
@@ -755,14 +866,7 @@ function Get-UserRegistryHive {
         return $false
     }
     finally {
-        if ($hkuDrive) {
-            try {
-                $hkuDrive | Remove-PSDrive
-            }
-            catch {
-                Write-Status -Status FAIL -Message "Failed to remove PSDrive: $($_.Exception.Message)"
-            }
-        }
+        Get-HKUDrive -Unload
     }
 
     switch ($mode) {

@@ -214,6 +214,11 @@ catch {
 
 # ==================== REMOVE ONEDRIVE ====================
 
+# Modes:
+# CurrentUser: Only run HKCU uninstallers.
+# AllUsers: Run uninstallers found in HKCU and HKLM, and notify of other user installations (if applicable).
+# DefaultUser: Remove from registry Default registry hive.
+
 $argParams = @{}
 
 if ($global:g_DefaultUserOnly) {

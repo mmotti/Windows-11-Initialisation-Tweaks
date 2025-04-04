@@ -115,10 +115,24 @@ This script is a user "initialisation" for a fresh Windows install. The majority
 
     Note: Spellcheck option (enabled by default) is not altered as it could exclude file formats in future should they add further support.
 
-1. **Remove OneDrive (current user only):**
-    * Scan registry for UninstallStrings and run the uninstallers.
-    * Remove "OneDriveSetup" from the default user's registry hive (HKEY_USERS\Default\Software\Microsoft\Windows\CurrentVersion\Run).
-    * Scan for OneDrive in other user profiles and notify if detected.
+1. **Remove OneDrive:**
+    
+    Modes:
+    <ul>
+    <li>
+     CurrentUser (Default Selection)
+
+     Run uninstallers within HKCU.
+    </li>
+    <li>
+    AllUsers
+    
+    Run uninstallers within HKCU, HKLM and notify user of OneDrive installations in other user profiles.</li>
+    <li>
+    DefaultUser
+    
+    Remove OneDriveSetup from the Default user's registry hive.</li>
+    </ul>
 
 1. **Windows Update:**
     * Disable "Delivery Optimisation" (Don't allow downloads from other devices).

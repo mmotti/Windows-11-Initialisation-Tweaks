@@ -19,7 +19,7 @@ function Get-ElevatedTerminal {
     $baseArguments = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-File", "`"$global:scriptPath`""
+        "-File", "`"$global:g_scriptPath`""
     )
     
     Write-Status -Status WARN -Message "Attempting to relaunch the script with elevated privileges..."
@@ -89,14 +89,14 @@ function Import-RegKeys {
 
     # Sanity check that the required variables etc are definitely in the desired state.
 
-    if ($global:RegistryTweaksEnabled -eq $false) {
+    if ($global:g_RegistryTweaksEnabled -eq $false) {
         Write-Status -Status WARN -Message "Registry import command was called when registry tweaks are disabled. Skipping." -Indent 1
         return
     }
 
-    if ($global:BackupsEnabled -eq $true -and !(Test-Path $global:BackupDirectory)) {
-        Write-Status -Status FAIL -Message "Backup path does not exist: $global:BackupDirectory" -Indent 1
-        $global:RegistryTweaksEnabled = $false
+    if ($global:g_BackupsEnabled -eq $true -and !(Test-Path $global:g_BackupDirectory)) {
+        Write-Status -Status FAIL -Message "Backup path does not exist: $global:g_BackupDirectory" -Indent 1
+        $global:g_RegistryTweaksEnabled = $false
     }
 
     $validKeys = $KeyArray | Where-Object {$_.Name -match "\.reg$"}
@@ -135,7 +135,7 @@ function Import-RegKeys {
                         $importFile = $tempFilePath
                     }
 
-                    if ($global:BackupsEnabled -eq $true) {
+                    if ($global:g_BackupsEnabled -eq $true) {
                         if (!(Export-RegKeys -KeyPath $importFile)) {
                             Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
                             continue
@@ -172,7 +172,7 @@ function Import-RegKeys {
             # --- Load Default Hive ONCE if needed ---
             if ($DefaultUser.IsPresent) {
                 Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
-                $defaultHivePath = if ([string]::IsNullOrEmpty($global:DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:DefaultUserCustomHive}
+                $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
                 $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath
                 if (-not $defaultHiveWasLoadedSuccessfully) {
                     # Get-UserRegistryHive should write the specific error. We just need to stop.
@@ -199,7 +199,7 @@ function Import-RegKeys {
                         }
                     }
 
-                    if ($global:BackupsEnabled -eq $true) {
+                    if ($global:g_BackupsEnabled -eq $true) {
                         if (!(Export-RegKeys -KeyPath $importFile)) {
                             Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
                             continue
@@ -242,11 +242,11 @@ function Export-RegKeys {
 
     # Sanity checks.
 
-    if ($global:BackupsEnabled -eq $false) {
+    if ($global:g_BackupsEnabled -eq $false) {
         return $true
     }
 
-    if (!(Test-Path -Path $global:BackupDirectory)) {
+    if (!(Test-Path -Path $global:g_BackupDirectory)) {
         return $false
     }
 
@@ -273,7 +273,7 @@ function Export-RegKeys {
                     $friendlyFileName = "${friendlyFileName}.reg"
                 }
 
-                $null = reg export $keyRegPath "$global:BackupDirectory\$friendlyFileName" /y 2>&1
+                $null = reg export $keyRegPath "$global:g_BackupDirectory\$friendlyFileName" /y 2>&1
 
                 if ($LASTEXITCODE -eq 0) {
                     $script:BackedUpRegistryPaths += $_.Groups[1].Value
@@ -351,7 +351,7 @@ function New-BackupDirectory {
         catch {
             Write-Status -Status FAIL -Message "Unable to create path: `"$BackupPath`"." -Indent 1
             Write-Status -Status WARN -Message "Registry tweaks will be skipped." -Indent 1
-            $global:RegistryTweaksEnabled = $false
+            $global:g_RegistryTweaksEnabled = $false
         }
     }
 }
@@ -593,7 +593,7 @@ function Remove-OneDrive {
 
         Write-Status -Status ACTION -Message "Checking the default user's registry hive for $oneDriveKeyValue..." -Indent 1
 
-        $defaultHivePath = if ([string]::IsNullOrEmpty($global:DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:DefaultUserCustomHive}
+        $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
 
         if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
             $hkuDrive = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop

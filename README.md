@@ -141,7 +141,7 @@ This script is a user "initialisation" for a fresh Windows install. The majority
 ## Usage with Windows Sandbox
 You can use this file to initialise the Windows Sandbox too!
 
-#### Sample configuration
+**Sample configuration**
 
 ```wsb
 <Configuration>

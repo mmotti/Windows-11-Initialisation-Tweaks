@@ -144,9 +144,9 @@ if ($global:g_RegistryTweaksEnabled -eq $true) {
 
     $keyArray = Get-ChildItem -Path (Join-Path $global:g_scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
-    if ($DefaultUser.IsPresent) {
+    if ($global:g_DefaultUserOnly) {
         Import-RegKeys -KeyArray $keyArray -DefaultUser
-    } elseif ($AllUsers.IsPresent) {
+    } elseif ($global:g_AllUsers) {
         Import-RegKeys -KeyArray $keyArray -AllUsers
     } else {
         Import-RegKeys -KeyArray $keyArray
@@ -188,10 +188,10 @@ try {
     $notepadTweakPath = (Join-Path $global:g_scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
     $notepadResult = $false
 
-    if ($AllUsers.IsPresent) {
-        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -AllUsers
-    } elseif ($DefaultUser.IsPresent) {
+    if ($global:g_DefaultUserOnly) {
         $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -DefaultUser
+    } elseif ($global:g_AllUsers) {
+        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -AllUsers
     } else {
         $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath
     }

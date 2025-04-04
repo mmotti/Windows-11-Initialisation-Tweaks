@@ -230,9 +230,8 @@ Update-Desktop
 
 # ==================== CLEAN-UP ====================
 Write-Status -Status ACTION -Message "Cleaning up..."
-Remove-Variable -Name g_scriptPath, g_scriptParentDir, g_RegistryTweaksEnabled, g_BackupsEnabled, g_ScriptRunBackupDir, g_DefaultUserOnly, g_DefaultUserCustomHive, g_AllUsers  -Scope Global -ErrorAction SilentlyContinue
+Get-Variable -Scope Global -ErrorAction SilentlyContinue | Where-Object {$_.Name -like "g_*"} | ForEach-Object {$_ | Remove-Variable -ErrorAction SilentlyContinue}
 
-$global
 Write-Status -Status OK -Message "Clean-up complete." -Indent 1
 
 # ==================== DONE ====================

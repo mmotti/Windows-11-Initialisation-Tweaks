@@ -106,130 +106,138 @@ function Import-RegKeys {
         return
     }
 
-    if ($AllUsers.IsPresent) {
-        Write-Status -Status ACTION -Message "Starting registry import process (Mode: AllUsers)."
+    switch ($PSCmdlet.ParameterSetName) {
+        "AllUsers" {
+            Write-Status -Status ACTION -Message "Starting registry import process (Mode: AllUsers)."
 
-        $userSids = Get-AllUserSids
+            $userSids = Get-AllUserSids
 
-        if ($null -eq $userSids -or $userSids.Count -eq 0) {
-            Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup."
-            return
-        }
-
-        foreach ($sid in $userSids) {
-            Write-Status -Status ACTION -Message "Processing user: $sid" -Indent 1
-
-            foreach ($key in $validKeys) {
-                $originalFilePath = $key.FullName
-                $tempFilePath = $null
-                $importFile = $originalFilePath
-
-                try {
-
-                    $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
-                    $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
-
-                    if ($originalContent -ne $modifiedContent) {
-                        $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
-                        Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
-                        $importFile = $tempFilePath
-                    }
-
-                    if ($global:g_BackupsEnabled -eq $true) {
-                        if (!(Export-RegKeys -KeyPath $importFile)) {
-                            Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
-                            continue
-                        }
-                    }
-
-                    $result = reg import "$importFile" 2>&1
-
-                    if ($LASTEXITCODE -ne 0) {
-                        Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
-                    } else {
-                        Write-Status -Status OK -Message "$($key.Name)" -Indent 1
-                    }
-                }
-                catch {
-                   Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) "
-                }
-                finally {
-                    if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
-                        Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
-                    }
-                }
-            }
-        }
-    } else {
-        
-        $mode = if ($DefaultUser.IsPresent) {"DefaultUser"} else {"CurrentUser"}
-        Write-Status -Status ACTION -Message "Starting registry import process (Mode: $mode)."
-
-        $defaultHiveWasLoadedSuccessfully = $false 
-
-        try {
-
-            # --- Load Default Hive ONCE if needed ---
-            if ($DefaultUser.IsPresent) {
-                Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
-                $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
-                $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath
-                if (-not $defaultHiveWasLoadedSuccessfully) {
-                    # Get-UserRegistryHive should write the specific error. We just need to stop.
-                    Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
-                    return # Exit function if hive load fails
-                }
-                Write-Status -Status OK -Message "Default User hive loaded successfully to $defaultHiveMountPoint." -Indent 1
+            if ($null -eq $userSids -or $userSids.Count -eq 0) {
+                Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup."
+                return
             }
 
-            foreach ($key in $validKeys) {
-                $originalFilePath = $key.FullName
-                $tempFilePath = $null
-                $importFile = $originalFilePath
+            foreach ($sid in $userSids) {
+                Write-Status -Status ACTION -Message "Processing user: $sid" -Indent 1
 
-                try {
+                foreach ($key in $validKeys) {
+                    $originalFilePath = $key.FullName
+                    $tempFilePath = $null
+                    $importFile = $originalFilePath
 
-                    if ($DefaultUser.IsPresent) {
+                    try {
+
                         $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
-                        if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
-                            $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
+                        $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
+
+                        if ($originalContent -ne $modifiedContent) {
                             $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
                             Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
                             $importFile = $tempFilePath
                         }
-                    }
 
-                    if ($global:g_BackupsEnabled -eq $true) {
-                        if (!(Export-RegKeys -KeyPath $importFile)) {
-                            Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
-                            continue
+                        if ($global:g_BackupsEnabled -eq $true) {
+                            if (!(Export-RegKeys -KeyPath $importFile)) {
+                                Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
+                                continue
+                            }
+                        }
+
+                        $result = reg import "$importFile" 2>&1
+
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
+                        } else {
+                            Write-Status -Status OK -Message "$($key.Name)" -Indent 1
                         }
                     }
-
-                    $result = reg import "$importFile" 2>&1
-
-                    if ($LASTEXITCODE -ne 0) {
-                        Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
-                    } else {
-                        Write-Status -Status OK -Message "$($key.Name)" -Indent 1
+                    catch {
+                    Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) "
                     }
-
-                }
-                catch {
-                    Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) "
-                }
-                finally {
-                    if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
-                        Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                    finally {
+                        if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
+                            Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                        }
                     }
                 }
-            }
-        } finally {
-            if ($DefaultUser.IsPresent -and $defaultHiveWasLoadedSuccessfully) {
-                $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
             }
         }
-    }   
+
+        {$_ -eq "CurrentUser" -or $_ -eq "DefaultUser"} {
+
+            Write-Status -Status ACTION -Message "Starting registry import process (Mode: $_)."
+
+            $defaultHiveWasLoadedSuccessfully = $false 
+
+            try {
+
+                # --- Load Default Hive ONCE if needed ---
+                if ($_ -eq "DefaultUser") {
+                    Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
+                    $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
+                    $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath
+                    if (-not $defaultHiveWasLoadedSuccessfully) {
+                        # Get-UserRegistryHive should write the specific error. We just need to stop.
+                        Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
+                        return # Exit function if hive load fails
+                    }
+                    Write-Status -Status OK -Message "Default User hive loaded successfully to $defaultHiveMountPoint." -Indent 1
+                }
+
+                foreach ($key in $validKeys) {
+                    $originalFilePath = $key.FullName
+                    $tempFilePath = $null
+                    $importFile = $originalFilePath
+
+                    try {
+
+                        if ($_ -eq "DefaultUser") {
+                            $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
+                            if ($originalContent -match "(?im)^\[HKEY_CURRENT_USER") {
+                                $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\TempDefault"
+                                $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
+                                Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
+                                $importFile = $tempFilePath
+                            }
+                        }
+
+                        if ($global:g_BackupsEnabled -eq $true) {
+                            if (!(Export-RegKeys -KeyPath $importFile)) {
+                                Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
+                                continue
+                            }
+                        }
+
+                        $result = reg import "$importFile" 2>&1
+
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
+                        } else {
+                            Write-Status -Status OK -Message "$($key.Name)" -Indent 1
+                        }
+
+                    }
+                    catch {
+                        Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) "
+                    }
+                    finally {
+                        if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
+                            Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                }
+            } finally {
+                if ($_ -eq "DefaultUser" -and $defaultHiveWasLoadedSuccessfully) {
+                    $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
+                }
+            }
+
+        }
+
+        default {
+            Write-Status -Status WARN -Message "Unexpected Parameter ($_). Skipping." -Indent 1
+        }
+    }
 }
 
 function Export-RegKeys {

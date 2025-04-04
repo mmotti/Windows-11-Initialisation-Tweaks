@@ -22,6 +22,11 @@ This script is a user "initialisation" for a fresh Windows install.
 <summary>Additional commandline options</summary>
 <br />
 
+**Run the script with no backups:**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks" -EnableBackups $false
+<hr />
+
 **Run the script for all existing users (excluding Default):**
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks" -AllUsers

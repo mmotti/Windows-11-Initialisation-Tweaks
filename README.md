@@ -39,6 +39,78 @@ This script is a user "initialisation" for a fresh Windows install. The majority
     powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUserCustomHive "PATH\TO\YOUR\FILE.dat"
 </details>
 
+## Modes
+The modes currently available to this script are:
+<ul>
+<li>CurrentUser (default)</li>
+<li>DefaultUser (Default user profile)</li>
+<li>AllUsers</li>
+</ul>
+
+<details>
+<summary>How each mode affects each action</summary>
+<br />
+
+**General Registry Tweaks:**
+
+<ul>
+<li>
+CurrentUser (Default Selection)
+
+HKEY_CURRENT_USER keys remain unchanged and HKEY_LOCAL_MACHINE keys etc are imported as normal.
+</li>
+<li>
+AllUsers
+
+HKEY_CURRENT_USER keys are individually converted to HKEY_USERS\sid and applied to every user with a user profile. HKEY_LOCAL_MACHINE keys etc are imported as normal.
+</li>
+
+<li>
+DefaultUser
+
+HKEY_CURRENT_USER keys are individually converted to HKEY_USERS\TempDefault (for importing to the Default user's registry hive). HKEY_LOCAL_MACHINE keys etc are imported as normal.
+</li>
+</ul>
+
+**Notepad:**
+
+<ul>
+<li>
+CurrentUser (Default Selection)
+
+Copy settings.dat file to: %LOCALAPPDATA\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\Settings
+</li>
+<li>
+AllUsers
+
+Copy settings.dat file to the above folder for all users.
+</li>
+
+<li>
+DefaultUser
+
+Copy the above file to the Default user's folder, relative to the above.
+</li>
+</ul>
+
+**OneDrive**:
+<ul>
+<li>
+CurrentUser (Default Selection)
+
+Run uninstallers within HKCU.
+</li>
+<li>
+AllUsers
+
+Run uninstallers within HKCU, HKLM and notify you of OneDrive installations in other user profiles.</li>
+<li>
+DefaultUser
+
+Remove OneDriveSetup from the Default user's registry hive.</li>
+</ul>
+
+</details>
 
 ## Actions
 
@@ -113,26 +185,11 @@ This script is a user "initialisation" for a fresh Windows install. The majority
     * AutoCorrect enabled.
     * Disable CoPilot (Notepad integration).
 
-    Note: Spellcheck option (enabled by default) is not altered as it could exclude file formats in future should they add further support.
+    Note: Spellcheck is left as default as M$ could introduce spellcheck support for further file types in future  which this could interfere with. Default setting is currently enabled for all file types.
 
 1. **Remove OneDrive:**
+    * Run the OneDrive uninstallers depending on the script mode.
     
-    Modes:
-    <ul>
-    <li>
-     CurrentUser (Default Selection)
-
-     Run uninstallers within HKCU.
-    </li>
-    <li>
-    AllUsers
-    
-    Run uninstallers within HKCU, HKLM and notify user of OneDrive installations in other user profiles.</li>
-    <li>
-    DefaultUser
-    
-    Remove OneDriveSetup from the Default user's registry hive.</li>
-    </ul>
 
 1. **Windows Update:**
     * Disable "Delivery Optimisation" (Don't allow downloads from other devices).

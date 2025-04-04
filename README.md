@@ -1,13 +1,11 @@
 # Windows 11 Initialisation Tweaks
-This script is a user "initialisation" for a fresh Windows install. The majority of these tweaks will run in the current user's context by default.
+This script is a user "initialisation" for a fresh Windows install.
 
 **This script requires administrative privileges**.
 
 ![Demonstration of script running.](assets/img/demo030425.gif)
 
 ## Instructions
-
-**Note:** If you choose to run this script with the DefaultUser or AllUsers (excludes default) switches, the HKEY_CURRENT_USERS registry entries be converted to the appropriate context. HKEY_LOCAL_MACHINE or other HKEY_USERS entries will apply as normal.
 
 **1. Open PowerShell and change directory:**
     

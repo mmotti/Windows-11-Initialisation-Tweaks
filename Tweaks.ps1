@@ -56,17 +56,6 @@ param(
                Mandatory=$false,
                HelpMessage="Specify a custom path for a default user hive.")]
     [ValidateNotNullOrEmpty()] # Prevent the user from being able to provide an empty or null string as an argument.
-    [ValidateScript({
-        # Accommodate for some validation, especially if this parameter wasn't explicitly specified, but included as part of the
-        # parameter set.
-        if ([string]::IsNullOrEmpty($_)) {
-            $true
-        } elseif ((Test-Path $_ -PathType Leaf) -and $_ -match "\.dat$") {
-            $true
-        } else {
-            throw "Please specify a valid .dat file."
-        }
-    })]
     [string]$DefaultUserCustomHive = $null,
 
     # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
@@ -76,25 +65,26 @@ param(
 
 Clear-Host
 
-if ($PSBoundParameters.ContainsKey("DefaultUserCustomHive")) {
-    $DefaultUser = $true
-}
+$global:g_scriptPath = $MyInvocation.MyCommand.Path
+$global:g_scriptParentDir = Split-Path $global:g_scriptPath -Parent
 
-$global:scriptPath = $MyInvocation.MyCommand.Path
-$global:scriptParentDir = Split-Path $global:scriptPath -Parent
+$global:g_DefaultUserOnly = $PSCmdlet.ParameterSetName -eq "DefaultUser"
+$global:g_AllUsers = $PSCmdlet.ParameterSetName -eq "AllUsers"
 
-$global:DefaultUserOnly = [bool]$DefaultUser
-
+$global:g_DefaultUserCustomHive = $null
 if (![string]::IsNullOrWhiteSpace($DefaultUserCustomHive)) {
-    $global:DefaultUserCustomHive = $DefaultUserCustomHive
+    if (!((Test-Path -Path $DefaultUserCustomHive -PathType Leaf) -and $DefaultUserCustomHive -match "\.dat$" )) {
+        Write-Status -Status FAIL -Message "Invalid path specified for -DefaultUserCustomHive."
+        throw
+    }
+    $global:g_DefaultUserCustomHive = $DefaultUserCustomHive
 }
 
-$global:AllUsers = $AllUsers.IsPresent
-$global:RegistryTweaksEnabled = $true
-$global:BackupsEnabled = $EnableBackups
-$global:BackupDirectory = (Join-Path $global:scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
+$global:g_RegistryTweaksEnabled = $true
+$global:g_BackupsEnabled = $EnableBackups
+$global:g_BackupDirectory = (Join-Path $global:g_scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
 
-$ps1Path = Join-Path $global:scriptParentDir "assets\ps1"
+$ps1Path = Join-Path $global:g_scriptParentDir "assets\ps1"
 $ps1Functions = Join-Path $ps1Path "Functions.ps1"
 
 $ps1Path, $ps1Functions | ForEach-Object {
@@ -131,15 +121,15 @@ if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
 # Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
 
 if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
-    $global:BackupsEnabled = $false
+    $global:g_BackupsEnabled = $false
 }
 
 
 # ==================== BACKUP INITIALISATION ====================
 
-if ($global:BackupsEnabled -eq $true) {
+if ($global:g_BackupsEnabled -eq $true) {
     # Initialise the backup folders.
-    New-BackupDirectory -BackupPath $global:BackupDirectory
+    New-BackupDirectory -BackupPath $global:g_BackupDirectory
 }
 
 # ==================== STOP EXPLORER ====================
@@ -148,11 +138,11 @@ $explorerStopSuccess = Stop-Explorer
 
 # ==================== REGISTRY TWEAKS ====================
 
-if ($global:RegistryTweaksEnabled -eq $true) {
+if ($global:g_RegistryTweaksEnabled -eq $true) {
     
     Write-Status -Status ACTION -Message "Starting registry tweaks..."
 
-    $keyArray = Get-ChildItem -Path (Join-Path $global:scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
+    $keyArray = Get-ChildItem -Path (Join-Path $global:g_scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
     if ($DefaultUser.IsPresent) {
         Import-RegKeys -KeyArray $keyArray -DefaultUser
@@ -195,7 +185,7 @@ Remove-PublicDesktopShortcuts -ShortcutArray $publicDesktopShortcuts
 Write-Status -Status ACTION -Message "Processing Notepad settings..." -Indent 1
 try {
 
-    $notepadTweakPath = (Join-Path $global:scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
+    $notepadTweakPath = (Join-Path $global:g_scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
     $notepadResult = $false
 
     if ($AllUsers.IsPresent) {
@@ -240,7 +230,7 @@ Update-Desktop
 
 # ==================== CLEAN-UP ====================
 Write-Status -Status ACTION -Message "Cleaning up..."
-Remove-Variable -Name scriptPath, scriptParentDir, RegistryTweaksEnabled, BackupsEnabled, ScriptRunBackupDir, DefaultUserOnly, DefaultUserCustomHive, AllUsers  -Scope Global -ErrorAction SilentlyContinue
+Remove-Variable -Name g_scriptPath, g_scriptParentDir, g_RegistryTweaksEnabled, g_BackupsEnabled, g_ScriptRunBackupDir, g_DefaultUserOnly, g_DefaultUserCustomHive, g_AllUsers  -Scope Global -ErrorAction SilentlyContinue
 
 $global
 Write-Status -Status OK -Message "Clean-up complete." -Indent 1

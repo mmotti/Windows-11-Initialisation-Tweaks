@@ -235,7 +235,8 @@ function Import-RegKeys {
         }
 
         default {
-            Write-Status -Status WARN -Message "Unexpected Parameter ($_). Skipping." -Indent 1
+            Write-Status -Status FAIL -Message "Unexpected ParameterSet. Unable to continue." -Indent 1
+            exit
         }
     }
 }
@@ -727,7 +728,14 @@ function Get-UserRegistryHive {
         return $false
     }
 
-    if ($Load.IsPresent) {
+    # Sanity check
+    $mode = $PSCmdlet.ParameterSetName
+    if ([string]::IsNullOrWhiteSpace($mode)) {
+        Write-Status -Status FAIL -Message "Unexpected parameter conditions." -Indent 1
+        exit
+    }
+
+    if ($mode -eq "Load") {
         if (!(Test-Path -Path $HivePath -PathType Leaf)) {
             Write-Status -Status FAIL -Message "Path not found: $HivePath" -Indent 1
             return $false
@@ -757,36 +765,36 @@ function Get-UserRegistryHive {
         }
     }
 
-    if ($Load.IsPresent) {
-        try {
-            $null = reg load $HiveName "$HivePath" 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                throw "Unable to load the Default user's registry hive."
+    switch ($mode) {
+        "Load" {
+            try {
+                $null = reg load $HiveName "$HivePath" 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Unable to load the Default user's registry hive."
+                }
+                return $true
             }
-            return $true
-        }
-        catch {
-            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
-            return $false
-        }
-
-    } elseif ($Unload.IsPresent) {
-
-        try {
-            Wait-RegeditExit
-            $null = reg unload $HiveName 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                throw "Unable to unload the Default user's registry hive."
+            catch {
+                Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+                return $false
             }
-            return $true
         }
-        catch {
-            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
-            return $false
+        "Unload" {
+            try {
+                Wait-RegeditExit
+                $null = reg unload $HiveName 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Unable to unload the Default user's registry hive."
+                }
+                return $true
+            }
+            catch {
+                Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+                return $false
+            }
         }
+        Default {return $false}
     }
-
-    return $false
 }
 
 function Stop-Explorer {

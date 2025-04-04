@@ -849,23 +849,7 @@ function Start-Explorer {
     Write-Status -Status OK -Message "Explorer restarted." -Indent 1
 }
 
-function Get-AllUserSids {
-
-    try {
-         $profileList = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction Stop
-         if ($null -eq $profileList) {
-            return @()
-         }
-    }
-    catch {
-        Write-Status -Status FAIL -Message "Unable to query user sids." -Indent 1
-        return @()
-    }
-
-    return $profileList | Where-Object {$_.PSChildName -notmatch "^(S-1-5-(18|19|20)|\.DEFAULT)$"} | Select-Object -ExpandProperty PSChildName
-}
-
-function Get-AllUserProfilePaths {
+function Get-ProfileList {
 
     try {
         $profileList = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction Stop
@@ -875,22 +859,32 @@ function Get-AllUserProfilePaths {
    }
    catch {
        Write-Status -Status FAIL -Message "Unable to query user sids." -Indent 1
+       return @()
    }
 
    $filteredProfiles = $profileList | Where-Object {
-    $profilePath = $null
-    try {$profilePath = $_.GetValue("ProfileImagePath", $null)} catch {}
-    $_.PSChildName -notmatch "^(S-1-5-(18|19|20)|\.DEFAULT)$" -and 
-    $null -ne $profilePath -and
-    (Test-Path -Path $profilePath -PathType Container)
+        $profilePath = $null
+        try {$profilePath = $_.GetValue("ProfileImagePath", $null)} catch {}
+        $_.PSChildName -notmatch "^(S-1-5-(18|19|20)|S-1-5-93-2-(1|2)|\.DEFAULT)$" -and 
+        $null -ne $profilePath -and
+        (Test-Path -Path $profilePath -PathType Container)
    }
 
-   if ($null -eq $profileList -or $filteredProfiles.Count -eq 0) {
+   if ($null -eq $filteredProfiles -or $filteredProfiles.Count -eq 0) {
        Write-Status -Status FAIL -Message "No sids were returned."
        return @()
    }
 
-   return $filteredProfiles | ForEach-Object {$_.GetValue("ProfileImagePath")}
+   return $filteredProfiles
+
+}
+
+function Get-AllUserSids {
+    return Get-ProfileList | Select-Object -ExpandProperty PSChildName 
+}
+
+function Get-AllUserProfilePaths {
+   return Get-ProfileList | ForEach-Object {$_.GetValue("ProfileImagePath")}
 }
 
 function Remove-PublicDesktopShortcuts {

@@ -1,7 +1,7 @@
 # Windows 11 Initialisation Tweaks
 This script is a user "initialisation" for a fresh Windows install.
 
-**This script requires administrative privileges**.
+**Admin elevation required**.
 
 ![Demonstration of script running.](assets/img/demo030425.gif)
 
@@ -22,7 +22,7 @@ This script is a user "initialisation" for a fresh Windows install.
 <summary>Additional commandline options</summary>
 <br />
 
-**Run the script with no backups:**
+**Run the script with backups disabled:**
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks" -EnableBackups $false
 <hr />

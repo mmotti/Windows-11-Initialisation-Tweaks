@@ -23,6 +23,10 @@
     Runs the script with default settings (Registry Tweaks enabled, Backups enabled, targets current user).
 
 .EXAMPLE
+    .\Tweaks.ps1 -EnableBackups $false
+    Runs the script targeting the current user, but disable backups.
+
+.EXAMPLE
     .\Tweaks.ps1 -DefaultUser
     Runs the script attempting to target the Default User profile where applicable
 

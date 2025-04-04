@@ -226,7 +226,6 @@ function Import-RegKeys {
             }
         } finally {
             if ($DefaultUser.IsPresent -and $defaultHiveWasLoadedSuccessfully) {
-                Wait-RegeditExit
                 $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
             }
         }
@@ -626,7 +625,6 @@ function Remove-OneDrive {
             Remove-PSDrive -Name HKU
         }
         if ($hiveLoaded) {
-            Wait-RegeditExit
             $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
         }
     }
@@ -767,6 +765,7 @@ function Get-UserRegistryHive {
     } elseif ($Unload.IsPresent) {
 
         try {
+            Wait-RegeditExit
             $null = reg unload $HiveName 2>&1
             if ($LASTEXITCODE -ne 0) {
                 throw "Unable to unload the Default user's registry hive."

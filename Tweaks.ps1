@@ -144,13 +144,17 @@ if ($global:g_RegistryTweaksEnabled -eq $true) {
 
     $keyArray = Get-ChildItem -Path (Join-Path $global:g_scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
 
-    if ($global:g_DefaultUserOnly) {
-        Import-RegKeys -KeyArray $keyArray -DefaultUser
-    } elseif ($global:g_AllUsers) {
-        Import-RegKeys -KeyArray $keyArray -AllUsers
-    } else {
-        Import-RegKeys -KeyArray $keyArray
+    $argParams = @{
+        KeyArray = $keyArray
     }
+
+    if ($global:g_DefaultUserOnly) {
+        $argParams.DefaultUser = $true
+    } elseif ($global:g_AllUsers) {
+        $argParams.AllUsers = $true
+    }
+
+    Import-RegKeys @argParams
 }
 
 # ==================== SET APPROPRIATE POWER PLAN ====================
@@ -188,13 +192,17 @@ try {
     $notepadTweakPath = (Join-Path $global:g_scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
     $notepadResult = $false
 
-    if ($global:g_DefaultUserOnly) {
-        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -DefaultUser
-    } elseif ($global:g_AllUsers) {
-        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath -AllUsers
-    } else {
-        $notepadResult = Import-NotepadTweaks -TweakPath $notepadTweakPath
+    $argParams = @{
+        TweakPath = $notepadTweakPath
     }
+
+    if ($global:g_DefaultUserOnly) {
+        $argParams.DefaultUser = $true
+    } elseif ($global:g_AllUsers) {
+        $argParams.AllUsers = $true
+    }
+
+    $notepadResult = Import-NotepadTweaks @argParams
 
     if (-not $notepadResult) {
         Write-Status -Status WARN -Message "Notepad tweak processing completed with one or more errors." -Indent 1

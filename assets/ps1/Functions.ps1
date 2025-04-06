@@ -486,7 +486,7 @@ function Set-PowerPlan {
                 }
             } else {
                 $targetPlanActive = $false
-                Write-Status -Status WARN -Message "The desired power plan was not found on this system." -Indent 1
+                Write-Status -Status WARN -Message "The desired power plan ($targetPlan) was not found on this system." -Indent 1
                 return $false
             }
 

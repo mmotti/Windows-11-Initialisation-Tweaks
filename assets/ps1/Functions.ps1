@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 $script:BackedUpRegistryPaths = @()
 
 function Test-IsAdminElevated {
@@ -157,7 +159,7 @@ function Import-RegKeys {
             $userSids = Get-AllUserSids
 
             if ($null -eq $userSids -or $userSids.Count -eq 0) {
-                Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup."
+                Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup." -Indent 1
                 return
             }
 
@@ -196,7 +198,7 @@ function Import-RegKeys {
                         }
                     }
                     catch {
-                    Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) "
+                    Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) " -Indent 1
                     }
                     finally {
                         if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
@@ -261,7 +263,7 @@ function Import-RegKeys {
 
                     }
                     catch {
-                        Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) "
+                        Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process: $($_.Exception.Message) " -Indent 1
                     }
                     finally {
                         if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
@@ -451,7 +453,7 @@ function Set-PowerPlan {
                     powercfg /setactive $desiredSchemeGUID
 
                     if ($LASTEXITCODE -ne 0) {
-                        Write-Status -Status FAIL -Message "An error occurred: $($_.Exception.Message)"
+                        Write-Status -Status FAIL -Message "An error occurred: $($_.Exception.Message)" -Indent 1
                         return $false
                     } else {
                         $targetPlanActive = $true
@@ -526,7 +528,7 @@ function Import-NotepadTweaks {
         )
 
     if (!(Test-Path -Path $TweakPath -PathType Leaf)) {
-        Write-Status -Status FAIL -Message "Path not found: $TweakPath"
+        Write-Status -Status FAIL -Message "Path not found: $TweakPath" -Indent 1
         return $false
     }
 
@@ -747,7 +749,7 @@ function Remove-OneDrive {
                                 }
                             }
                             catch {
-                                Write-Status -Status FAIL -Message "An error occurred during the OneDrive check: $($_.Exception.Message)"
+                                Write-Status -Status FAIL -Message "An error occurred during the OneDrive check: $($_.Exception.Message)" -Indent 1
                             }
                         }
                     }
@@ -765,7 +767,7 @@ function Remove-OneDrive {
                             Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
                             Get-HKUDrive -Load
                         } else {
-                            Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded."
+                            Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded." -Indent 1
                             return
                         }
             
@@ -991,7 +993,7 @@ function Get-ProfileList {
    }
 
    if ($null -eq $filteredProfiles -or $filteredProfiles.Count -eq 0) {
-       Write-Status -Status FAIL -Message "No sids were returned."
+       Write-Status -Status FAIL -Message "No sids were returned." -Indent 1
        return @()
    }
 

@@ -169,7 +169,7 @@ if ($global:g_RegistryTweaksEnabled -eq $true) {
 Write-Status -Status ACTION -Message "Setting appropriate power plan..."
 
 if (!(Set-PowerPlan)) {
-    Write-Status -Status FAIL -Message "Power plan change failed."
+    Write-Status -Status FAIL -Message "Power plan change failed." -Indent 1
 }
 
 # ==================== ENABLE FEATURES ====================

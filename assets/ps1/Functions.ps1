@@ -1,5 +1,3 @@
-#Requires -RunAsAdministrator
-
 $script:BackedUpRegistryPaths = @()
 
 function Test-IsAdminElevated {

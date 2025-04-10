@@ -181,7 +181,7 @@ Remove OneDriveSetup from the Default user's registry hive.</li>
 1. **Remove the Microsoft Edge shortcut from the Public Desktop.**
 
 1. **Notepad settings:**
-    * Open files in a new tab.
+    * Open files in a new window.
     * Start a new session / discard unsaved changes when Notepad starts.
     * WordWrap enabled.
     * Recent files enabled.

@@ -46,6 +46,9 @@
     .\Tweaks.ps1 -AllUsers
     Runs the script attempting to target all existing user profiles (excluding Default).
 
+.LINK
+    https://github.com/mmotti/Windows-11-Initialisation-Tweaks
+
 .NOTES
     Author: mmotti (https://github.com/mmotti)
     Requires Windows 11 (Build 22000+).

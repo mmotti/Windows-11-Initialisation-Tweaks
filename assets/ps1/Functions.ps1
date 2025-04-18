@@ -994,7 +994,7 @@ function Get-ProfileList {
             $profilePath = $_.GetValue("ProfileImagePath", $null)
             if ($null -eq $profilePath) {return $false}
         } catch {
-            Write-Status -Status WARN -Message "Could not read ProfileImagePath for SID $sid. Error: $($_.Exception.Message)"
+            Write-Status -Status WARN -Message "Could not read ProfileImagePath for SID $sid. Error: $($_.Exception.Message)" -Indent 1
             return $false
         }
 

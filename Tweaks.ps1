@@ -75,7 +75,7 @@ param(
     # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
     [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
     [bool]$EnableBackups = $true,
-    [Parameter(Mandatory=$false, HelpMessage="Wait for exit if switch is present.")]
+    [Parameter(Mandatory=$false, HelpMessage="Wait for exit.")]
     [switch]$Wait
 )
 

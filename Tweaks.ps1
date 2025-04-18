@@ -1,26 +1,34 @@
 <#
 .SYNOPSIS
-    Configures and tweaks Windows 11 settings.
+    A comprehensive script for customizing Windows 11 settings, applying privacy enhancements etc.
 
 .DESCRIPTION
-    This script applies various registry tweaks, sets power plans, manages firewall rules,
-    removes specified shortcuts, configures Notepad, removes OneDrive, and applies a custom wallpaper.
-    It includes options for enabling/disabling registry tweaks and backups, and a switch
-    to indicate intent to modify the Default user profile (implementation specifics may vary).
+    This script provides several functional and privacy related tweaks to Windows 11.
+    For further information on the script actions, please see: https://github.com/mmotti/Windows-11-Initialisation-Tweaks?tab=readme-ov-file#actions
 
 .PARAMETER EnableBackups
-    Enable or disable the creation of backups before applying changes. Defaults to $true.
-    Backups are automatically disabled if running in Windows Sandbox.
+    Enable or disable the creation of backups before applying changes.
+    Default: $true.
+    Default (Windows Sandbox): $false
 
 .PARAMETER DefaultUser
     A switch parameter. If present, the script will attempt to apply relevant settings
     (like specific registry tweaks) to the Default User profile instead of the current user.
-    NOTE: Full implementation for default user requires modifying functions to target the
-    Default User registry hive (NTUSER.DAT) and profile folders.
+
+.PARAMETER AllUsers
+    A switch parameter. If present, the script will attempt to apply relevant settings
+    (like specific registry tweaks) to the each user profile (including the current user).
+
+.PARAMETER Wait
+    A switch parameter. If present, the script will pause at the end of execution.
 
 .EXAMPLE
     .\Tweaks.ps1
     Runs the script with default settings (Registry Tweaks enabled, Backups enabled, targets current user).
+
+.EXAMPLE
+    .\Tweaks.ps1 -Wait
+    Runs the script with default settings (as above) but prompts for any keypress to exit.
 
 .EXAMPLE
     .\Tweaks.ps1 -EnableBackups $false
@@ -37,9 +45,11 @@
 .EXAMPLE
     .\Tweaks.ps1 -AllUsers
     Runs the script attempting to target all existing user profiles (excluding Default).
+
 .NOTES
     Author: mmotti (https://github.com/mmotti)
     Requires Windows 11 (Build 22000+).
+    Requires PowerShell 5.1 or higher.
     Ensure the 'assets' folder structure exists relative to the script.
 #>
 
@@ -64,7 +74,9 @@ param(
 
     # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
     [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
-    [bool]$EnableBackups = $true
+    [bool]$EnableBackups = $true,
+    [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
+    [switch]$Wait
 )
 
 Clear-Host
@@ -99,7 +111,7 @@ $ps1Path, $ps1Functions | ForEach-Object {
 
 # ==================== IMPORTS ====================
 
-# Fail here if we can't import the functions otherwise the rest 
+# Fail here if we can't import the functions otherwise the rest
 # of the script will fail.
 
 try {
@@ -143,7 +155,7 @@ $explorerStopSuccess = Stop-Explorer
 # ==================== REGISTRY TWEAKS ====================
 
 if ($global:g_RegistryTweaksEnabled -eq $true) {
-    
+
     Write-Status -Status ACTION -Message "Starting registry tweaks..."
 
     $keyArray = Get-ChildItem -Path (Join-Path $global:g_scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
@@ -262,5 +274,10 @@ Write-Status -Status OK -Message "Clean-up complete." -Indent 1
 # ==================== DONE ====================
 
 Write-Host
-Write-Status -Status OK -Message "Script execution complete. Press any key to exit..."
-$null = $host.UI.RawUI.ReadKey("NoEcho, IncludeKeyDown")
+Write-Status -Status OK -Message "Script execution complete."
+
+if ($Wait) {
+    Write-Host
+    Write-Status -Status INFO -Message "Press any key to continue..."
+    $null = $host.UI.RawUI.ReadKey("NoEcho, IncludeKeyDown")
+}

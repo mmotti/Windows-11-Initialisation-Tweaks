@@ -22,6 +22,11 @@ This script is a user "initialisation" for a fresh Windows install.
 <summary>Additional commandline options</summary>
 <br />
 
+**Run the script but don't exit:**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Wait
+<hr />
+
 **Run the script with backups disabled:**
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks" -EnableBackups $false
@@ -55,6 +60,8 @@ The modes currently available to this script are:
 <br />
 
 **General Registry Tweaks:**
+
+**Note:** Whilst you are able to specify one of the scopes below for the general registry tweaks, **tweaks that are out of scope (e.g. HKLM policies) will still apply**. The scope setting in this instance only determines how HKCU keys are imported (and converted where necessary).
 
 <ul>
 <li>

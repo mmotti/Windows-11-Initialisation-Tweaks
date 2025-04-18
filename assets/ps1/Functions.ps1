@@ -36,7 +36,7 @@ function Get-ElevatedTerminal {
                     $additionalArgs += "-$key"
                 }
             } elseif ($null -eq $value) {
-                $additionalArgs += "- $key"
+                $additionalArgs += "-$key"
             } else {
                 $formattedValue = "`"$value`""
                 $additionalArgs += "-$key", $formattedValue
@@ -52,7 +52,7 @@ function Get-ElevatedTerminal {
         $finalArgumentList = @(
             "new-tab",
             "-p",
-            "--",
+            "powershell",
             "powershell.exe"
         ) + $baseArguments + $additionalArgs
     } else {
@@ -61,7 +61,7 @@ function Get-ElevatedTerminal {
     }
 
     try {
-        Start-Process $cmdToRun -ArgumentList @($finalArgumentList -split " ") -Verb RunAs -ErrorAction Stop
+        Start-Process $cmdToRun -ArgumentList $finalArgumentList -Verb RunAs -ErrorAction Stop
         exit 0
     }
     catch {
@@ -971,6 +971,10 @@ function Start-Explorer {
 
 function Get-ProfileList {
 
+    $excludedProfiles = @(
+        "WSIAccount"
+    )
+
     try {
         $profileList = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction Stop
         if ($null -eq $profileList) {
@@ -984,10 +988,29 @@ function Get-ProfileList {
 
    $filteredProfiles = $profileList | Where-Object {
         $profilePath = $null
-        try {$profilePath = $_.GetValue("ProfileImagePath", $null)} catch {}
-        $_.PSChildName -notmatch "^(S-1-5-(18|19|20)|S-1-5-93-2-(1|2)|\.DEFAULT)$" -and 
-        $null -ne $profilePath -and
-        (Test-Path -Path $profilePath -PathType Container)
+        $sid = $_.PSChildName
+
+        try {
+            $profilePath = $_.GetValue("ProfileImagePath", $null)
+            if ($null -eq $profilePath) {return $false}
+        } catch {
+            Write-Status -Status WARN -Message "Could not read ProfileImagePath for SID $sid. Error: $($_.Exception.Message)"
+            return $false
+        }
+
+        if (!(Test-Path -Path $profilePath -PathType Container)) {
+            return $false
+        }
+
+        if ($sid -match "^(S-1-5-(18|19|20)|S-1-5-93-2-(1|2)|\.DEFAULT)$") {
+            return $false
+        }
+
+        if ((Split-Path -Path $profilePath -Leaf) -in $excludedProfiles) {
+            return $false
+        }
+
+        return $true
    }
 
    if ($null -eq $filteredProfiles -or $filteredProfiles.Count -eq 0) {

@@ -388,7 +388,7 @@ function Start-Debloat {
                 foreach ($package in $installedPackages) {
                     try {
                         Write-Status -Status ACTION -Message "Uninstalling..." -Indent 1
-                        Remove-AppxPackage -Package $package.PackageFullName @appxPackageArgs -ErrorAction Stop
+                        Remove-AppxPackage -Package $package.PackageFullName @appxPackageArgs -ErrorAction Stop | Out-Null
                         Write-Status -Status OK -Message "Removed." -Indent 1
                     }
                     catch {
@@ -410,11 +410,11 @@ function Start-Debloat {
                 foreach ($package in $provisionedPackages) {
                     try {
                         Write-Status -Status ACTION -Message "Removing from provisioned packages..." -Indent 1
-                        Remove-AppxProvisionedPackage -Online -PackageName $package.PackageName
-                        Write-Status -Status OK -Message "Removed."
+                        Remove-AppxProvisionedPackage -Online -PackageName $package.PackageName -ErrorAction Stop | Out-Null
+                        Write-Status -Status OK -Message "Removed." -Indent 1
                     }
                     catch {
-                        Write-Status -Status FAIL -Message "Failed to remove provisioned package. Error: $($_.Exception.Message)"
+                        Write-Status -Status FAIL -Message "Failed to remove provisioned package. Error: $($_.Exception.Message)" -Indent 1
                     }
                 }
             } else {

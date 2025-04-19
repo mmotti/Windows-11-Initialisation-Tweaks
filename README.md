@@ -1,277 +1,184 @@
-# Windows 11 Initialisation Tweaks
-This script is a user "initialisation" for a fresh Windows install.
+# Windows 11 Initialization Tweaks
 
-**Admin elevation required**.
+![Demonstration](assets/img/demo030425.gif)
 
-![Demonstration of script running.](assets/img/demo030425.gif)
+This PowerShell script helps streamline the setup of a fresh Windows 11 installation by applying various customization tweaks, privacy enhancements, and debloating options.
 
-## Instructions
+**⚠️ Important:**
+- This script modifies system settings.
+- **Administrator elevation is required.**
+- Use at your own risk.
+- Backups are enabled by default (except in Windows Sandbox).
 
-**1. Open PowerShell and change directory:**
-    
-    powershell
-    cd 'PATH\TO\THE\SCRIPT\DIRECTORY\'
+## Features
 
-**2. Run the script in the current user's context:**
+This script performs a range of actions, including:
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
+*   **UI Customization:**
+    *   Applies the Windows dark theme.
+    *   Aligns taskbar icons to the left.
+    *   Hides Taskbar Search and Copilot buttons.
+    *   Enables "Show Desktop" on the far right corner of the taskbar.
+    *   Adds "This PC" icon to the desktop and sets icons to small.
+    *   Configures File Explorer (show hidden files/extensions, hide recent/frequent items, open to This PC).
+    *   Sets Windows Terminal as the default console.
+*   **Privacy & Annoyances:**
+    *   Disables various tracking and advertising features (activity history, advertising ID, tailored experiences, diagnostic data, etc.).
+    *   Disables tips, suggestions, welcome experience, and Start Menu recommendations.
+    *   Disables Windows Spotlight and "fun facts" on the lock screen.
+    *   Disables Widgets.
+    *   Disables Copilot+ Recall feature (registry key).
+*   **System Configuration:**
+    *   Sets an appropriate power plan (Balanced for X3D CPUs, High Performance otherwise).
+    *   Disables sleep mode on AC power if no battery is detected.
+    *   Disables Fast Startup.
+    *   Enables RDP (registry settings and firewall rules).
+    *   Disables Windows Update Delivery Optimization (P2P downloads).
+*   **Debloating & Cleanup (Optional):**
+    *   Removes specified AppX packages (see [assets/txt/debloat.txt](assets/txt/debloat.txt)) using the `-Debloat` switch.
+    *   Removes the Microsoft Edge shortcut from the Public Desktop.
+    *   Uninstalls OneDrive (scope depends on execution mode).
+*   **Application Settings:**
+    *   Applies custom settings for Notepad (WordWrap, new window default, etc.).
+    *   Copies a clean Start Menu layout for new users (when using `-DefaultUser` mode).
 
-<hr />
+## Prerequisites
 
-<details closed>
-<summary>Additional commandline options</summary>
+*   Windows 11 (Build 22000 or higher)
+*   PowerShell 5.1 or higher
+*   Administrator privileges
 
+## Installation
 
-### Debloating
-Include debloat of [specified packages](assets/txt/debloat.txt).
+1.  Download the script files (ensure you have `Tweaks.ps1` and the `assets` folder in the same directory). You can clone the repository or download a ZIP archive.
+2.  Open PowerShell **as Administrator**.
+3.  Navigate to the script's directory using `cd`:
+    ```powershell
+    cd 'C:\path\to\your\script\directory'
+    ```
 
-**Debloat packages for current user**:
+## Usage
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Debloat
+### Basic Execution (Applies to Current User)
 
+This is the simplest way to run the script. It applies tweaks to the currently logged-in user profile.
 
-**Debloat packages for all current and future users:**
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
+```
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -AllUsers -Debloat
-   
-**Debloat packages for all future users:**
+---
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser -Debloat
-    
-<hr />
+### Advanced Usage & Command-Line Options
 
-### Script modes
+You can modify the script's behavior using different modes and switches:
 
-**AllUsers mode (excluding Default profile):**
+#### Script Modes
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks" -AllUsers
+These options change the *scope* of where the tweaks are applied:
 
+*   **`-AllUsers`**: Attempts to apply relevant settings (Registry HKCU tweaks, Debloating, Notepad settings, OneDrive removal) to **all existing user profiles** found on the system (excluding the Default profile). HKLM settings are applied normally.
+*   **`-DefaultUser`**: Attempts to apply relevant settings (Registry HKCU tweaks converted for Default, Debloating provisioned packages, Notepad settings, OneDrive setup removal) to the **Default User profile**. This affects **future users** created on the system. HKLM settings are applied normally.
+    *   **`-DefaultUserCustomHive "PATH\TO\NTUSER.DAT"`**: (Use with `-DefaultUser`) Specify a path to a custom `NTUSER.dat` file for the Default User profile, instead of the system's default one.
 
-**DefaultUser mode (convert HKCU registry entries to Default to apply to new users):**
+*(If no mode switch is specified, the script defaults to applying settings only to the **Current User**.)*
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser
+#### Debloating
 
+*   **`-Debloat`**: Performs the debloating actions (removing apps listed in [assets/txt/debloat.txt](assets/txt/debloat.txt)). Combine this with modes (`-AllUsers`, `-DefaultUser`) to control the debloating scope.
 
-**DefaultUser mode with a custom hive location:**
+    *   **Debloat for current user:**
+        ```powershell
+        powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Debloat
+        ```
+    *   **Debloat for all current users AND future users:**
+        ```powershell
+        powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -AllUsers -Debloat
+        ```
+    *   **Debloat for future users only (provisioned apps):**
+        ```powershell
+        powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser -Debloat
+        ```
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUserCustomHive "PATH\TO\YOUR\FILE.dat"
+#### Misc Options
 
-### Misc options
-
-**Don't exit on completion:**
-
+*   **`-EnableBackups $false`**: Disables the automatic registry backup creation. **Use with caution.** (Backups are automatically disabled in Windows Sandbox).
+    ```powershell
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -EnableBackups $false
+    ```
+*   **`-Wait`**: Keeps the PowerShell window open after the script finishes, prompting you to press a key before exiting.
+    ```powershell
     powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Wait
-<hr />
+    ```
 
-**Disable registry backups:**
+---
 
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks" -EnableBackups $false
-<hr />
-</details>
+### Examples Combining Options
 
-## Modes
-The modes currently available to this script are:
-<ul>
-<li>CurrentUser (default)</li>
-<li>DefaultUser (Default user profile)</li>
-<li>AllUsers</li>
-</ul>
+*   **Apply tweaks and debloat for ALL current users and remove provisioned apps for future users:**
+    ```powershell
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -AllUsers -Debloat
+    ```
 
-<details>
-<summary>How each mode affects each action</summary>
-<br />
+*   **Apply tweaks to the Default User profile (for future users) and remove provisioned apps:**
+    ```powershell
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser -Debloat
+    ```
 
-**General Registry Tweaks:**
+*   **Apply tweaks to a custom Default User hive:**
+    ```powershell
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser -DefaultUserCustomHive "C:\Data\NTUSER.DAT"
+    ```
 
-**Note:** Whilst you are able to specify one of the scopes below for the general registry tweaks, **tweaks that are out of scope (e.g. HKLM policies) will still apply**. The scope setting in this instance only determines how HKCU keys are imported (and converted where necessary).
+---
 
-<ul>
-<li>
-CurrentUser (Default Selection)
+## How Modes Affect Actions
 
-HKEY_CURRENT_USER keys remain unchanged and HKEY_LOCAL_MACHINE keys etc are imported as normal.
-</li>
-<li>
-AllUsers
+The `-AllUsers` and `-DefaultUser` modes change how certain actions are performed compared to the default (Current User) mode:
 
-HKEY_CURRENT_USER keys are individually converted to HKEY_USERS\sid and applied to every user with a user profile. HKEY_LOCAL_MACHINE keys etc are imported as normal.
-</li>
+| Action                | Default (Current User)                                                              | `-AllUsers`                                                                                                   | `-DefaultUser`                                                                                                     |
+| :-------------------- | :---------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------- |
+| **Registry Tweaks**   | Applies HKCU keys to current user. Applies HKLM keys system-wide.                   | Converts HKCU keys and applies them to *each existing user's* profile. Applies HKLM keys system-wide.       | Converts HKCU keys and applies them to the *Default User's* registry hive (for new users). Applies HKLM keys system-wide. |
+| **Debloat** (`-Debloat`) | Uninstalls specified packages for the *current user*.                               | Uninstalls for *all users* AND removes *provisioned packages* (for new users).                                | Removes *provisioned packages* only (for new users).                                                               |
+| **Notepad Settings**  | Copies `settings.dat` to the *current user's* Notepad settings folder.              | Copies `settings.dat` to *each existing user's* Notepad settings folder.                                      | Copies `settings.dat` to the *Default User's* relative Notepad settings folder (for new users).                    |
+| **OneDrive Removal**  | Runs uninstallers found in *current user's* registry (HKCU).                        | Runs HKCU & HKLM uninstallers. *Notifies* if OneDrive is detected in other user profiles (manual removal needed). | Removes OneDrive setup entry from the *Default User's* registry hive (for new users).                              |
+| **Start Menu Layout** | No action.                                                                          | No action.                                                                                                    | Copies `start2.bin` to the *Default User* profile (for new users).                                                 |
 
-<li>
-DefaultUser
+**Note:** System-wide settings (like HKLM registry keys, firewall rules, power plans) are generally applied regardless of the chosen mode. The mode primarily dictates how user-specific settings (HKCU registry, user-installed apps, profile files) are handled.
 
-HKEY_CURRENT_USER keys are individually converted to HKEY_USERS\TempDefault (for importing to the Default user's registry hive). HKEY_LOCAL_MACHINE keys etc are imported as normal.
-</li>
-</ul>
-
-**Debloat:**
-
-<ul>
-<li>
-CurrentUser (Default Selection)
-
-Uninstall the specified packages for the current user.
-</li>
-<li>
-AllUsers
-
-Uninstall the specified packages for all users and also remove them as provisioned packages. 
-</li>
-
-<li>
-DefaultUser
-
-Remove the specified packages as provisioned packages.
-</li>
-</ul>
-
-**Notepad:**
-
-<ul>
-<li>
-CurrentUser (Default Selection)
-
-Copy settings.dat file to: %LOCALAPPDATA\Packages\Microsoft.WindowsNotepad_8wekyb3d8bbwe\Settings
-</li>
-<li>
-AllUsers
-
-Copy settings.dat file to the above folder for all users.
-</li>
-
-<li>
-DefaultUser
-
-Copy the above file to the Default user's folder, relative to the above.
-</li>
-</ul>
-
-**OneDrive**:
-<ul>
-<li>
-CurrentUser (Default Selection)
-
-Run uninstallers within HKCU.
-</li>
-<li>
-AllUsers
-
-Run uninstallers within HKCU, HKLM and notify you of OneDrive installations in other user profiles.</li>
-<li>
-DefaultUser
-
-Remove OneDriveSetup from the Default user's registry hive.</li>
-</ul>
-
-</details>
-
-## Actions
-
-<details closed>
-<summary>Script actions</summary>
-<br />
-
-1. **Debloat (if -Debloat switch present):**
-    * Remove the packages specified in [debloat.txt](assets/txt/debloat.txt).
-    * Conditionally remove provisioning of the specified apps for new users (depending on [mode](#modes)).
-
-1. **Start Menu (if -DefaultUser switch present):**
-    * Copy a "clean" start menu to the Default user's profile (for new users).
-
-1. **Defaults:**
-    * Set Windows Terminal as the default console application.
-
-1. **Apply the Windows(dark) theme.**
-
-1. **Lock screen:**
-    * Disable Windows Spotlight.
-    * Disable "fun facts, tips and tricks" on the lock screen.
-    * Disable lock screen status.
-
-1. **Taskbar:**
-    * Align to the left.
-    * Hide the Copilot button.
-    * Hide Search button.
-    * Select the far right corner of the taskbar to show the desktop.
-
-1. **Desktop icons:**
-    * Show "This PC" on the desktop.
-    * Set desktop icons to small.
-
-1. **File Explorer:**
-    * Hide recent files from Quick Access.
-    * Hide frequently used folders from Quick Access.
-    * Show hidden files.
-    * Show extensions for known file types.
-    * Open "This PC" by default.
-    * Disable "Show sync provider notifications".
-
-1. **Disable fast startup.**
-
-1. **Privacy / Annoyances:**
-    * Disable Copilot+ Recall.
-    * Disable Widgets.
-    * Disable "Store my activity history on this device".
-    * Disable online search suggestions.
-    * Disable app permission to use advertising ID.
-    * Disable "Get tips and suggestions when using Windows" notifications.
-    * Disable "Show me suggested content in the Settings app".
-    * Disable the "Windows welcome experience" after updates.
-    * Disable "Suggest ways to get the most out of Windows.
-    * Disable "Tailored experiences".
-    * Disable "Show recommendations for tips, shortcuts, new apps and more" in the start menu.
-    * Disable "Let websites show me locally relevant content by accessing my language list".
-    * Disable "Let Windows improve Start and Search by tracking app launches".
-    * Disable "Improve ink and typing".
-    * Disable "Sending optional diagnostic data".
-    * Disable Windows toast suggestions (notifications).
-
-1. **Set the Power plan:**
-    * Balanced: X3D processors.
-    * High Performance: Everything else.
-    * Disable sleep mode if no battery is detected.
-
-1. **Enable RDP:**
-    * Change registry settings to enable RDP.
-    * Enable firewall rules for the associated "Remote Desktop" display group.
-
-1. **Remove the Microsoft Edge shortcut from the Public Desktop.**
-
-1. **Notepad settings:**
-    * Open files in a new window.
-    * Start a new session / discard unsaved changes when Notepad starts.
-    * WordWrap enabled.
-    * Recent files enabled.
-    * AutoCorrect enabled.
-    * Disable CoPilot (Notepad integration).
-
-    Note: Spellcheck is left as default as M$ could introduce spellcheck support for further file types in future  which this could interfere with. Default setting is currently enabled for all file types.
-
-1. **Remove OneDrive:**
-    * Run the OneDrive uninstallers depending on the script mode.
-    
-
-1. **Windows Update:**
-    * Disable "Delivery Optimisation" (Don't allow downloads from other devices).
-</details>
+---
 
 ## Usage with Windows Sandbox
-You can use this file to initialise the Windows Sandbox too!
 
-**Sample configuration**
+You can easily use this script to initialize a Windows Sandbox environment on launch.
 
-```wsb
+**Sample `.wsb` Configuration:**
+
+```xml
 <Configuration>
   <MappedFolders>
     <MappedFolder>
-      <HostFolder>C:\Data\Scripts</HostFolder>
-      <SandboxFolder>C:\Scripts</SandboxFolder>
-      <ReadOnly>True</ReadOnly>
+      <!-- Adjust HostFolder to where you downloaded the script -->
+      <HostFolder>C:\Path\To\Your\Script\Directory</HostFolder>
+      <!-- This is where it will appear inside the Sandbox -->
+      <SandboxFolder>C:\Tweaks</SandboxFolder>
+      <ReadOnly>true</ReadOnly> <!-- Optional: Mount as read-only -->
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\Windows-Tweaks\Tweaks.ps1</Command>
+    <!-- Command to run the script inside the Sandbox -->
+    <!-- Example: Run default tweaks + debloat -->
+    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Tweaks\Tweaks.ps1 -Debloat</Command>
   </LogonCommand>
 </Configuration>
 ```
-Save this with your relevant `<HostFolder>`, `<SandboxFolder>` and `<Command>` preferences to a `.wsb` file (e.g. `Sandbox.wsb`) and then double-click the wsb file to launch the Sandbox.
+
+Save this configuration as a `.wsb` file (e.g., `SandboxTweak.wsb`) and double-click it to launch a pre-configured Sandbox instance. Registry backups are automatically disabled when running inside the Sandbox.
+
+---
+
+## Important Notes
+
+*   **Backups:** The script automatically backs up registry keys it intends to modify to a `backups` subfolder unless `-EnableBackups $false` is used or when run in Windows Sandbox.
+*   **Explorer Restart:** The script temporarily stops `explorer.exe` to ensure certain settings (like taskbar alignment and icon sizes) apply correctly. It will restart Explorer automatically before finishing.
+*   **Compatibility:** While designed for Windows 11, some tweaks might work on Windows 10, but this is not tested or guaranteed.

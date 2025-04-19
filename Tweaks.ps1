@@ -19,32 +19,16 @@
     A switch parameter. If present, the script will attempt to apply relevant settings
     (like specific registry tweaks) to the each user profile (including the current user).
 
+.PARAMETER Debloat
+    A switch parameter. If present, the script will attempt to debloat Windows by removing packages specified
+    within the configuration file.
+
 .PARAMETER Wait
     A switch parameter. If present, the script will pause at the end of execution.
 
 .EXAMPLE
     .\Tweaks.ps1
-    Runs the script with default settings (Registry Tweaks enabled, Backups enabled, targets current user).
-
-.EXAMPLE
-    .\Tweaks.ps1 -Wait
-    Runs the script with default settings (as above) but prompts for any keypress to exit.
-
-.EXAMPLE
-    .\Tweaks.ps1 -EnableBackups $false
-    Runs the script targeting the current user, but disable backups.
-
-.EXAMPLE
-    .\Tweaks.ps1 -DefaultUser
-    Runs the script attempting to target the Default User profile where applicable
-
-.EXAMPLE
-    .\Tweaks.ps1 -DefaultUserCustomHive "C:\Data\NTUSER.dat"
-    Runs the script attempting to target a custom Default User profile where applicable.
-
-.EXAMPLE
-    .\Tweaks.ps1 -AllUsers
-    Runs the script attempting to target all existing user profiles (excluding Default).
+    See basic and advanced usage instructions here: https://github.com/mmotti/Windows-11-Initialisation-Tweaks?tab=readme-ov-file#usage
 
 .LINK
     https://github.com/mmotti/Windows-11-Initialisation-Tweaks

@@ -10,9 +10,14 @@ This PowerShell script helps streamline the setup of a fresh Windows 11 installa
 - Use at your own risk.
 - Backups are enabled by default (except in Windows Sandbox).
 
-**Note (19/04/25)**:
-<br />
-It looks like M$ disregards changes made to the Default user's NTUSER.dat and applies their default "template" that sadly includes OneDrive installers and things like Windows Spotlight for the desktop wallpaper. A lot of the tweaks do apply successfully to new profiles but I do not currently have a workaround for things like OneDrive yet. This means that, as of the time of writing, you'll need to run this script after the creation and login of each new user.
+
+**Default User Customizations:** When a new user logs in for the first time, Windows runs its own setup process which can overwrite certain settings (like Taskbar Search or Windows Spotlight) previously applied to the Default User template (`NTUSER.DAT`).
+
+**Recommendation:** For the most reliable results with these types of settings:
+1.  Allow new users to log in **once** to complete the initial Windows profile creation.
+2.  **After** that first login, apply your custom settings by either:
+     *   Running this script while logged in as the new user (targets current profile).
+     *   Logging back in as an administrator and using the `-AllUsers` parameter (targets all existing profiles, including the newly initialized one).
 
 ## Features
 

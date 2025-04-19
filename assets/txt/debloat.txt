@@ -1,0 +1,17 @@
+Microsoft.Copilot
+Microsoft.ZuneMusic
+Microsoft.PowerAutomateDesktop
+Microsoft.YourPhone
+Microsoft.WindowsFeedbackHub
+Microsoft.Windows.DevHome
+Microsoft.OutlookForWindows
+Microsoft.MicrosoftStickyNotes
+Microsoft.MicrosoftSolitaireCollection
+Microsoft.MicrosoftOfficeHub
+Microsoft.GetHelp
+Microsoft.BingSearch
+Microsoft.BingNews
+Microsoft.BingWeather
+Clipchamp.Clipchamp
+Microsoft.Todos
+Microsoft.Windows.DevHome

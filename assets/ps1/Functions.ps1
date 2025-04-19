@@ -21,7 +21,7 @@ function Get-ElevatedTerminal {
         "-ExecutionPolicy", "Bypass",
         "-File", "`"$global:g_scriptPath`""
     )
-    
+
     Write-Status -Status WARN -Message "Attempting to relaunch the script with elevated privileges..."
 
     $additionalArgs = @()
@@ -86,7 +86,7 @@ function Get-HKUDrive {
                    HelpMessage="Unloads the specified registry hive.")]
         [switch]$Unload
     )
-    
+
     switch ($PSCmdlet.ParameterSetName) {
         "Load" {
             try {
@@ -211,7 +211,7 @@ function Import-RegKeys {
 
             Write-Status -Status ACTION -Message "Starting registry import process (Mode: $_)."
 
-            $defaultHiveWasLoadedSuccessfully = $false 
+            $defaultHiveWasLoadedSuccessfully = $false
 
             try {
 
@@ -274,12 +274,152 @@ function Import-RegKeys {
                     $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
                 }
             }
-
         }
 
         default {
             Write-Status -Status FAIL -Message "Unexpected ParameterSet. Unable to continue." -Indent 1
             return
+        }
+    }
+}
+
+function Copy-DefaultStartMenu {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Start2Path
+    )
+
+    $fileName = "start2.bin"
+
+    # Sanity check path.
+    if (!((Test-Path -Path $Start2Path -PathType Leaf) -and (Split-Path -Path $Start2Path -Leaf) -eq $fileName)) {
+        return
+    }
+
+    # Sanity check script mode.
+    if (!$global:g_DefaultUserOnly) {
+        return
+    }
+
+    Write-Status -Status ACTION -Message "Processing Default user's start menu..."
+
+    $destinationDir = Join-Path -Path "$env:SystemDrive\Users\Default" -ChildPath "AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
+    $destinationPath = Join-Path -Path $destinationDir -ChildPath $fileName
+
+    if (!(Test-Path -Path $destinationDir)) {
+        New-Item -Path $destinationDir -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+
+    try {
+        Write-Status -Status ACTION -Message "Copying $fileName to the Default User profile." -Indent 1
+        Copy-Item -Path $Start2Path -Destination $destinationPath
+        Write-Status -Status OK -Message "File copied successfully." -Indent 1
+    }
+    catch {
+        Write-Status -Status FAIL -Message "File copy failed. Error: $($_.Exception.Message)" -Indent 1
+    }
+}
+
+function Start-Debloat {
+    [CmdletBinding(DefaultParameterSetName='CurrentUser')]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$DebloatConfig,
+
+        [Parameter(ParameterSetName='AllUsers',
+        Mandatory=$false,
+        HelpMessage="Apply settings to all existing user accounts (excluding Default).")]
+        [switch]$AllUsers,
+
+        [Parameter(ParameterSetName='DefaultUser',
+            Mandatory=$false,
+            HelpMessage="Apply settings to the Default User profile template for future new users.")]
+        [switch]$DefaultUser
+    )
+
+    # Sanity check for path
+
+    if (!((Test-Path -Path $DebloatConfig -PathType Leaf) -and $DebloatConfig -match "\.txt$")) {
+        Write-Status -Status WARN -Message "Debloat config file was not found: $DebloatConfig"
+        return
+    }
+
+    $debloatConfigContent = Get-Content -Path $DebloatConfig -ErrorAction SilentlyContinue
+
+    if (!$debloatConfigContent) {
+        Write-Status -Status WARN -Message "No content was found within: $DebloatConfig"
+        return
+    }
+
+    $appxPackageArgs  = @{}
+    if ($PSCmdlet.ParameterSetName -eq "AllUsers") {
+        $appxPackageArgs.AllUsers = $true
+    }
+
+    $mode = switch ($PSCmdlet.ParameterSetName) {
+        "CurrentUser" {"Current User"}
+        "AllUsers" {"All Users"}
+        "DefaultUser" {"Default User"}
+        Default {$null}
+    }
+
+    Write-Status -Status ACTION -Message "Starting debloat process (Mode: $mode)..."
+
+    $debloatConfigContent | ForEach-Object {
+
+        $appName = $_.Trim()
+
+        if (!$appName) {
+            return
+        }
+
+        Write-Status -Status ACTION -Message "Processing: $appName" -Indent 1
+
+        # Only remove installed packages when running in CurrentUser or AllUsers mode.
+
+        if ($PSCmdlet.ParameterSetName -in ("CurrentUser", "AllUsers")) {
+
+            $installedPackages = Get-AppxPackage -Name $appName @appxPackageArgs -ErrorAction SilentlyContinue
+
+            if ($installedPackages) {
+                foreach ($package in $installedPackages) {
+                    try {
+                        Write-Status -Status ACTION -Message "Uninstalling..." -Indent 1
+                        Remove-AppxPackage -Package $package.PackageFullName @appxPackageArgs -ErrorAction Stop
+                        Write-Status -Status OK -Message "Removed." -Indent 1
+                    }
+                    catch {
+                        Write-Status -Status FAIL -Message "Failed to remove. Error: $($_.Exception.Message)" -Indent 1
+                    }
+                }
+            } else {
+                Write-Status -Status OK -Message "Not installed." -Indent 1
+            }
+        }
+
+        # Only remove provisioned packages when running in AllUsers or DefaultUser mode.
+
+        if ($PSCmdlet.ParameterSetName -in ("AllUsers", "DefaultUser")) {
+
+            $provisionedPackages = Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like "*$appName*"}
+
+            if ($provisionedPackages) {
+                foreach ($package in $provisionedPackages) {
+                    try {
+                        Write-Status -Status ACTION -Message "Removing from provisioned packages..." -Indent 1
+                        Remove-AppxProvisionedPackage -Online -PackageName $package.PackageName
+                        Write-Status -Status OK -Message "Removed."
+                    }
+                    catch {
+                        Write-Status -Status FAIL -Message "Failed to remove provisioned package. Error: $($_.Exception.Message)"
+                    }
+                }
+            } else {
+                Write-Status -Status OK -Message "Not provisioned." -Indent 1
+            }
         }
     }
 }
@@ -583,7 +723,7 @@ function Import-NotepadTweaks {
 
         $destinationPath = Join-Path $basePath $notepadRelativePath
         $destinationDir = Split-Path $destinationPath -Parent
-        
+
         try {
 
             if (!(Test-Path -Path $destinationDir)) {
@@ -650,7 +790,7 @@ function Remove-OneDrive {
                     $mode = $_
 
                     $uninstallActionBlock = {
-                        
+
                         $currentRegistryPath = $_
 
                         if ([string]::IsNullOrWhiteSpace($currentRegistryPath)) {
@@ -683,7 +823,7 @@ function Remove-OneDrive {
                     }
 
                     if ($mode -eq "AllUsers") {
-                        
+
                         # First check for HKLM, run the uninstallers.
                         # Then check other user profiles for OneDrive entries and notify if found.
 
@@ -722,7 +862,7 @@ function Remove-OneDrive {
                                         foreach ($sid in $otherUserSids) {
                                             $targetHKUPath = $path -replace "^HKCU:", "HKU:\$sid"
                                             if (Test-Path -Path $targetHKUPath) {
-                                                
+
                                                 $userIdentifier = $sid
                                                 try {
                                                     $sidObject = [System.Security.Principal.SecurityIdentifier]::new($sid)
@@ -733,7 +873,7 @@ function Remove-OneDrive {
                                                 } catch {
                                                     Write-Status -Status WARN -Message "Unexpected error translating SID ($sid): $($_.Exception.Message)" -Indent 1
                                                 }
-                                                
+
                                                 $foundOneDriveForOthers = $true
                                                 Write-Status -Status WARN -Message "OneDrive detected for user: $userIdentifier" -Indent 1
                                             }
@@ -754,13 +894,13 @@ function Remove-OneDrive {
                 }
                 "DefaultUser" {
                     try {
-    
+
                         $oneDriveKeyValue = "OneDriveSetup"
-                        $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"            
+                        $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
                         $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
 
                         Write-Status -Status ACTION -Message "Loading the Default user's registry hive..." -Indent 1
-            
+
                         if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
                             Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
                             Get-HKUDrive -Load
@@ -768,7 +908,7 @@ function Remove-OneDrive {
                             Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded." -Indent 1
                             return
                         }
-            
+
                         $hiveLoaded = $true
 
                         $oneDriveDefaultUserSetup =  Get-ItemProperty -Path $defaultUserRunPath -Name $oneDriveKeyValue -ErrorAction SilentlyContinue
@@ -833,7 +973,7 @@ function Get-UserRegistryHive {
         [ValidateNotNullOrEmpty()]
         [string]$HiveName
     )
-    
+
     if ($HiveName -notmatch "^HKU\\") {
         Write-Status -Status FAIL -Message "Hive name must match HKU\" -Indent 1
         return $false
@@ -924,7 +1064,7 @@ function Stop-Explorer {
 }
 
 function Wait-RegeditExit {
-    
+
     $getRegeditProcess = {Get-Process -Name regedit -ErrorAction SilentlyContinue}
 
     if (& $getRegeditProcess) {
@@ -1023,7 +1163,7 @@ function Get-ProfileList {
 }
 
 function Get-AllUserSids {
-    return Get-ProfileList | Select-Object -ExpandProperty PSChildName 
+    return Get-ProfileList | Select-Object -ExpandProperty PSChildName
 }
 
 function Get-AllUserProfilePaths {

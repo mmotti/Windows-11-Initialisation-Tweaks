@@ -78,6 +78,8 @@ param(
     # --- Common Parameter (Available in ALL sets, including the default 'CurrentUser' set) ---
     [Parameter(Mandatory=$false, HelpMessage="Enable or disable backups.")]
     [bool]$EnableBackups = $true,
+    [Parameter(Mandatory=$false, HelpMessage="Debloat apps listed within the configuration file.")]
+    [switch]$Debloat,
     [Parameter(Mandatory=$false, HelpMessage="Wait for exit.")]
     [switch]$Wait
 )
@@ -174,6 +176,37 @@ if ($global:g_RegistryTweaksEnabled -eq $true) {
     }
 
     Import-RegKeys @argParams
+}
+
+# ==================== Start Menu ====================
+
+if ($global:g_DefaultUserOnly) {
+
+    $start2Path = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\dat\StartMenu\start2.bin"
+
+    if (Test-Path -Path $start2Path -PathType Leaf) {
+        Copy-DefaultStartMenu -Start2Path $start2Path
+    }
+}
+
+# ==================== DEBLOAT ====================
+
+if ($Debloat) {
+
+    $debloatPath = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\txt\debloat.txt"
+
+    if (Test-Path -Path $debloatPath -PathType Leaf) {
+
+        $argParams = @{}
+
+        if ($global:g_DefaultUserOnly) {
+            $argParams.DefaultUser = $true
+        } elseif ($global:g_AllUsers) {
+            $argParams.AllUsers = $true
+        }
+
+        Start-Debloat -DebloatConfig $debloatPath @argParams
+    }
 }
 
 # ==================== SET APPROPRIATE POWER PLAN ====================

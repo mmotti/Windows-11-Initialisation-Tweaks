@@ -20,31 +20,53 @@ This script is a user "initialisation" for a fresh Windows install.
 
 <details closed>
 <summary>Additional commandline options</summary>
-<br />
 
-**Run the script but don't exit:**
+
+### Debloating
+Include debloat of [specified packages](assets/txt/debloat.txt).
+
+**Debloat packages for current user**:
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Debloat
+
+
+**Debloat packages for all current and future users:**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -AllUsers -Debloat
+   
+**Debloat packages for all future users:**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser -Debloat
+    
+<hr />
+
+### Script modes
+
+**AllUsers mode (excluding Default profile):**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks" -AllUsers
+
+
+**DefaultUser mode (convert HKCU registry entries to Default to apply to new users):**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser
+
+
+**DefaultUser mode with a custom hive location:**
+
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUserCustomHive "PATH\TO\YOUR\FILE.dat"
+
+### Misc options
+
+**Don't exit on completion:**
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Wait
 <hr />
 
-**Run the script with backups disabled:**
+**Disable registry backups:**
 
     powershell -ExecutionPolicy Bypass -File ".\Tweaks" -EnableBackups $false
 <hr />
-
-**Run the script for all existing users (excluding Default):**
-
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks" -AllUsers
-<hr />
-
-**Run the script in the Default user's context (settings to apply to new users):**
-
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser
-<hr />
-
-**Run the script in the Default user's context but specify a custom location for the dat file:**
-
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUserCustomHive "PATH\TO\YOUR\FILE.dat"
 </details>
 
 ## Modes
@@ -79,6 +101,27 @@ HKEY_CURRENT_USER keys are individually converted to HKEY_USERS\sid and applied 
 DefaultUser
 
 HKEY_CURRENT_USER keys are individually converted to HKEY_USERS\TempDefault (for importing to the Default user's registry hive). HKEY_LOCAL_MACHINE keys etc are imported as normal.
+</li>
+</ul>
+
+**Debloat:**
+
+<ul>
+<li>
+CurrentUser (Default Selection)
+
+Uninstall the specified packages for the current user.
+</li>
+<li>
+AllUsers
+
+Uninstall the specified packages for all users and also remove them as provisioned packages. 
+</li>
+
+<li>
+DefaultUser
+
+Remove the specified packages as provisioned packages.
 </li>
 </ul>
 
@@ -127,6 +170,13 @@ Remove OneDriveSetup from the Default user's registry hive.</li>
 <details closed>
 <summary>Script actions</summary>
 <br />
+
+1. **Debloat (if -Debloat switch present):**
+    * Remove the packages specified in [debloat.txt](assets/txt/debloat.txt).
+    * Conditionally remove provisioning of the specified apps for new users (depending on [mode](#modes)).
+
+1. **Start Menu (if -DefaultUser switch present):**
+    * Copy a "clean" start menu to the Default user's profile (for new users).
 
 1. **Defaults:**
     * Set Windows Terminal as the default console application.

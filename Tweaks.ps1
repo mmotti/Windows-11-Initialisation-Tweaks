@@ -23,8 +23,8 @@
     A switch parameter. If present, the script will attempt to debloat Windows by removing packages specified
     within the configuration file.
 
-.PARAMETER Wait
-    A switch parameter. If present, the script will pause at the end of execution.
+.PARAMETER NoWait
+    A switch parameter. If present, the script will not pause at the end of execution.
 
 .EXAMPLE
     .\Tweaks.ps1
@@ -64,8 +64,8 @@ param(
     [bool]$EnableBackups = $true,
     [Parameter(Mandatory=$false, HelpMessage="Debloat apps listed within the configuration file.")]
     [switch]$Debloat,
-    [Parameter(Mandatory=$false, HelpMessage="Wait for exit.")]
-    [switch]$Wait
+    [Parameter(Mandatory=$false, HelpMessage="Disable waiting on exit.")]
+    [switch]$NoWait
 )
 
 Clear-Host
@@ -310,7 +310,7 @@ try {
      Write-Host
      Write-Status -Status OK -Message "Script execution complete."
  
-     if ($Wait) {
+     if (!$NoWait) {
          Write-Host
          Write-Status -Status INFO -Message "Press any key to continue..."
          $null = $host.UI.RawUI.ReadKey("NoEcho, IncludeKeyDown")

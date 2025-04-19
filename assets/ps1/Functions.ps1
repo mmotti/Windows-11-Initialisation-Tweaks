@@ -839,19 +839,41 @@ function Remove-OneDrive {
 
                             try {
 
-                                $userSids = Get-AllUserSids
+                                $profileList = Get-ProfileList
 
-                                if ($null -eq $userSids -or $userSids.Count -eq 0) {
-                                    write-Status -Status WARN -Message "Unable to query user sids." -Indent 1
+                                if ($null -eq $profileList -or $profileList.Count -eq 0) {
+                                    Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup." -Indent 1
                                     return
                                 }
 
                                 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-                                $otherUserSids = $userSids | Where-Object {$_ -ne $currentSid}
+                                $otherUserProfiles = $profileList | Where-Object {$_.SID -ne $currentSid}
 
                                 foreach ($path in $oneDriveHKCUPathsToCheck) {
-                                        foreach ($sid in $otherUserSids) {
-                                            $targetHKUPath = $path -replace "^HKCU:", "Registry::HKU\$sid"
+                                    foreach ($profile in $otherUserProfiles) {
+                                        
+                                        $sid = $profile.SID
+                                        $profilePath = $profile.ProfileImagePath
+                                        $targetHKUPath = $path -replace "^HKCU:", "Registry::HKU\$sid"
+                                        $userHiveLoaded = $null
+
+                                        try {
+                                            # Mount the registry hive if the user is not logged in
+                                            if (!(Test-Path -Path "Registry::HKU\$sid")) {
+                        
+                                                $userRegHivePath = Join-Path $profilePath "NTUSER.dat"
+                        
+                                                if (!(Test-Path -Path $userRegHivePath -PathType Leaf)) {
+                                                    throw "Path not found: $userRegHivePath"
+                                                }
+                        
+                                                $userHiveLoaded = Get-UserRegistryHive -Load -HiveName HKU\$sid -HivePath $userRegHivePath
+                        
+                                                if (!$userHiveLoaded) {
+                                                    throw "Unable to load registry hive for SID ($sid). Error: $($_.Exception.Message)"
+                                                }
+                                            }
+
                                             if (Test-Path -Path $targetHKUPath) {
 
                                                 $userIdentifier = $sid
@@ -869,6 +891,14 @@ function Remove-OneDrive {
                                                 Write-Status -Status WARN -Message "OneDrive detected for user: $userIdentifier" -Indent 1
                                             }
                                         }
+                                        catch {
+                                            Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+                                            continue
+                                        }
+                                        finally {
+                                            $null = Get-UserRegistryHive -Unload -HiveName HKU\$sid
+                                        }  
+                                    }
                                 }
 
                                 if ($foundOneDriveForOthers) {
@@ -1145,7 +1175,6 @@ function Get-ProfileList {
    }
 
    return $filteredProfiles
-
 }
 
 function Get-AllUserSids {

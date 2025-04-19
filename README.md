@@ -67,6 +67,11 @@ This is the simplest way to run the script. It applies tweaks to the currently l
 powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
 ```
 
+### Recommended Basic Execution (Applies to Current User, then the Default User)
+```powershell
+powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1"
+powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -DefaultUser
+```
 ---
 
 ### Advanced Usage & Command-Line Options

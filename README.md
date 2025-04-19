@@ -120,9 +120,9 @@ These options change the *scope* of where the tweaks are applied:
     ```powershell
     powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -EnableBackups $false
     ```
-*   **`-Wait`**: Keeps the PowerShell window open after the script finishes, prompting you to press a key before exiting.
+*   **`-NoWait`**: Do not prompt to continue on script completion..
     ```powershell
-    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -Wait
+    powershell -ExecutionPolicy Bypass -File ".\Tweaks.ps1" -NoWait
     ```
 
 ---

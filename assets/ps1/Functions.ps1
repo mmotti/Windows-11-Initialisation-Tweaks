@@ -369,12 +369,16 @@ function Start-Debloat {
     Write-Status -Status ACTION -Message "Starting debloat process (Mode: $mode)..."
 
     $debloatConfigContent | ForEach-Object {
+        
+        # Remove any existing wildcards or spaces at the start / end of the strings.
+        $appName = $_.Trim(" *")
 
-        $appName = $_.Trim()
-
-        if (!$appName) {
+        if ([string]::IsNullOrEmpty($appName)) {
             return
         }
+
+        # Add the wildcards to our trimmed strings.
+        $appName = "*$appName*"
 
         Write-Status -Status ACTION -Message "Processing: $appName" -Indent 1
 
@@ -404,7 +408,7 @@ function Start-Debloat {
 
         if ($PSCmdlet.ParameterSetName -in ("AllUsers", "DefaultUser")) {
 
-            $provisionedPackages = Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like "*$appName*"}
+            $provisionedPackages = Get-AppxProvisionedPackage -Online | Where-Object {$_.PackageName -like $appName}
 
             if ($provisionedPackages) {
                 foreach ($package in $provisionedPackages) {

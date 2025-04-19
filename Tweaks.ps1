@@ -182,7 +182,7 @@ if ($global:g_RegistryTweaksEnabled -eq $true) {
 
 if ($global:g_DefaultUserOnly) {
 
-    $start2Path = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\dat\StartMenu\start2.bin"
+    $start2Path = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\bin\StartMenu\start2.bin"
 
     if (Test-Path -Path $start2Path -PathType Leaf) {
         Copy-DefaultStartMenu -Start2Path $start2Path

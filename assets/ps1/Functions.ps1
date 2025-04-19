@@ -9,17 +9,25 @@ function Get-ElevatedTerminal {
 
     param(
         [Parameter(Mandatory=$true)]
-        [hashtable]$OriginalParameters
+        [hashtable]$OriginalParameters,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ScriptPath
     )
 
     if (Test-IsAdminElevated) {
         return
     }
 
+    # Sanity check script path
+    if (!((Test-Path -Path $ScriptPath -PathType Leaf) -and $ScriptPath -match "\.ps1$" )) {
+        throw "Path not found or invalid PS1 file: $ScriptPath"
+    }
+
     $baseArguments = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-File", "`"$global:g_scriptPath`""
+        "-File", "`"$ScriptPath`""
     )
 
     Write-Status -Status WARN -Message "Attempting to relaunch the script with elevated privileges..."
@@ -361,7 +369,7 @@ function Start-Debloat {
     Write-Status -Status ACTION -Message "Starting debloat process (Mode: $mode)..."
 
     $debloatConfigContent | ForEach-Object {
-        
+
         # Add the wildcards to our trimmed strings.
         $appName = "*$_*"
 

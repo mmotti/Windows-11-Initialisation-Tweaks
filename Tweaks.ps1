@@ -70,11 +70,46 @@ param(
 
 Clear-Host
 
+$scriptPath = $MyInvocation.MyCommand.Path
+$scriptParentDir = Split-Path $scriptPath -Parent
+
+$ps1Path = Join-Path $scriptParentDir "assets\ps1"
+$ps1Functions = Join-Path $ps1Path "Functions.ps1"
+
+$ps1Path, $ps1Functions | ForEach-Object {
+    if (!(Test-Path -Path $_)) {
+        throw "Path not found: $_"
+    }
+}
+
+# ==================== IMPORTS ====================
+
+# Fail here if we can't import the functions otherwise the rest
+# of the script will fail.
+
+try {
+    . $ps1Functions
+} catch {
+    Write-Status -Status FAIL -Message $_.Exception.Message
+    exit 1
+}
+
+# ==================== OBTAIN ELEVATION ====================
+
+try {
+    Get-ElevatedTerminal -OriginalParameters $PSBoundParameters -ScriptPath $scriptPath
+} catch {
+    Write-Status -Status FAIL -Message $_.Exception.Message
+    exit 1
+}
+
+# ==================== MAIN SCRIPT BODY ====================
+
 # Try block we can make us of finally
 try {
 
-    $global:g_scriptPath = $MyInvocation.MyCommand.Path
-    $global:g_scriptParentDir = Split-Path $global:g_scriptPath -Parent
+    $global:g_scriptPath = $scriptPath
+    $global:g_scriptParentDir = $scriptParentDir
 
     $global:g_DefaultUserOnly = $PSCmdlet.ParameterSetName -eq "DefaultUser"
     $global:g_AllUsers = $PSCmdlet.ParameterSetName -eq "AllUsers"
@@ -90,30 +125,6 @@ try {
     $global:g_RegistryTweaksEnabled = $true
     $global:g_BackupsEnabled = $EnableBackups
     $global:g_BackupDirectory = (Join-Path $global:g_scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
-
-    $ps1Path = Join-Path $global:g_scriptParentDir "assets\ps1"
-    $ps1Functions = Join-Path $ps1Path "Functions.ps1"
-
-    $ps1Path, $ps1Functions | ForEach-Object {
-        if (!(Test-Path -Path $_)) {
-            throw "Path not found: $_"
-        }
-    }
-
-    # ==================== IMPORTS ====================
-
-    # Fail here if we can't import the functions otherwise the rest
-    # of the script will fail.
-
-    try {
-        . $ps1Functions
-    } catch {
-        throw "Unable to import file: $ps1Functions"
-    }
-
-    # ==================== OBTAIN ELEVATION ====================
-
-    Get-ElevatedTerminal -OriginalParameters $PSBoundParameters
 
     # ==================== PREREQUISITES CHECK ====================
 
@@ -300,16 +311,12 @@ try {
     exit 1
 } finally {
      # ==================== CLEAN-UP ====================
-     Write-Status -Status ACTION -Message "Cleaning up..."
      Get-Variable -Scope Global -ErrorAction SilentlyContinue | Where-Object {$_.Name -like "g_*"} | ForEach-Object {$_ | Remove-Variable -ErrorAction SilentlyContinue}
- 
-     Write-Status -Status OK -Message "Clean-up complete." -Indent 1
- 
      # ==================== DONE ====================
- 
+
      Write-Host
      Write-Status -Status OK -Message "Script execution complete."
- 
+
      if (!$NoWait) {
          Write-Host
          Write-Status -Status INFO -Message "Press any key to continue..."

@@ -70,118 +70,99 @@ param(
 
 Clear-Host
 
-$global:g_scriptPath = $MyInvocation.MyCommand.Path
-$global:g_scriptParentDir = Split-Path $global:g_scriptPath -Parent
-
-$global:g_DefaultUserOnly = $PSCmdlet.ParameterSetName -eq "DefaultUser"
-$global:g_AllUsers = $PSCmdlet.ParameterSetName -eq "AllUsers"
-
-$global:g_DefaultUserCustomHive = $null
-if (![string]::IsNullOrWhiteSpace($DefaultUserCustomHive)) {
-    if (!((Test-Path -Path $DefaultUserCustomHive -PathType Leaf) -and $DefaultUserCustomHive -match "\.dat$" )) {
-        Write-Status -Status FAIL -Message "Invalid path specified for -DefaultUserCustomHive."
-        throw
-    }
-    $global:g_DefaultUserCustomHive = $DefaultUserCustomHive
-}
-
-$global:g_RegistryTweaksEnabled = $true
-$global:g_BackupsEnabled = $EnableBackups
-$global:g_BackupDirectory = (Join-Path $global:g_scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
-
-$ps1Path = Join-Path $global:g_scriptParentDir "assets\ps1"
-$ps1Functions = Join-Path $ps1Path "Functions.ps1"
-
-$ps1Path, $ps1Functions | ForEach-Object {
-    if (!(Test-Path -Path $_)) {
-        throw "Path not found: $_"
-    }
-}
-
-# ==================== IMPORTS ====================
-
-# Fail here if we can't import the functions otherwise the rest
-# of the script will fail.
-
+# Try block we can make us of finally
 try {
-    . $ps1Functions
-} catch {
-    throw "Unable to import file: $ps1Functions"
-}
 
-# ==================== OBTAIN ELEVATION ====================
+    $global:g_scriptPath = $MyInvocation.MyCommand.Path
+    $global:g_scriptParentDir = Split-Path $global:g_scriptPath -Parent
 
-Get-ElevatedTerminal -OriginalParameters $PSBoundParameters
+    $global:g_DefaultUserOnly = $PSCmdlet.ParameterSetName -eq "DefaultUser"
+    $global:g_AllUsers = $PSCmdlet.ParameterSetName -eq "AllUsers"
 
-# ==================== PREREQUISITES CHECK ====================
-
-# Check for Windows 11.
-
-if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
-    Write-Status -Status FAIL -Message "Windows 11 is required for this script to run."
-    throw
-}
-
-# Check for whether to enable backups or not.
-# Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
-
-if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
-    $global:g_BackupsEnabled = $false
-}
-
-
-# ==================== BACKUP INITIALISATION ====================
-
-if ($global:g_BackupsEnabled -eq $true) {
-    # Initialise the backup folders.
-    New-BackupDirectory -BackupPath $global:g_BackupDirectory
-}
-
-# ==================== STOP EXPLORER ====================
-
-$explorerStopSuccess = Stop-Explorer
-
-# ==================== REGISTRY TWEAKS ====================
-
-if ($global:g_RegistryTweaksEnabled -eq $true) {
-
-    Write-Status -Status ACTION -Message "Starting registry tweaks..."
-
-    $keyArray = Get-ChildItem -Path (Join-Path $global:g_scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
-
-    $argParams = @{
-        KeyArray = $keyArray
+    $global:g_DefaultUserCustomHive = $null
+    if (![string]::IsNullOrWhiteSpace($DefaultUserCustomHive)) {
+        if (!((Test-Path -Path $DefaultUserCustomHive -PathType Leaf) -and $DefaultUserCustomHive -match "\.dat$" )) {
+            throw "Invalid path specified for -DefaultUserCustomHive."
+        }
+        $global:g_DefaultUserCustomHive = $DefaultUserCustomHive
     }
 
-    if ($global:g_DefaultUserOnly) {
-        $argParams.DefaultUser = $true
-    } elseif ($global:g_AllUsers) {
-        $argParams.AllUsers = $true
+    $global:g_RegistryTweaksEnabled = $true
+    $global:g_BackupsEnabled = $EnableBackups
+    $global:g_BackupDirectory = (Join-Path $global:g_scriptParentDir "backups\$(Get-date -Format 'dd-MM-yy_HH-mm-ss')")
+
+    $ps1Path = Join-Path $global:g_scriptParentDir "assets\ps1"
+    $ps1Functions = Join-Path $ps1Path "Functions.ps1"
+
+    $ps1Path, $ps1Functions | ForEach-Object {
+        if (!(Test-Path -Path $_)) {
+            throw "Path not found: $_"
+        }
     }
 
-    Import-RegKeys @argParams
-}
+    # ==================== IMPORTS ====================
 
-# ==================== Start Menu ====================
+    # Fail here if we can't import the functions otherwise the rest
+    # of the script will fail.
 
-if ($global:g_DefaultUserOnly) {
-
-    $start2Path = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\bin\StartMenu\start2.bin"
-
-    if (Test-Path -Path $start2Path -PathType Leaf) {
-        Copy-DefaultStartMenu -Start2Path $start2Path
+    try {
+        . $ps1Functions
+    } catch {
+        throw "Unable to import file: $ps1Functions"
     }
-}
 
-# ==================== DEBLOAT ====================
+    # ==================== OBTAIN ELEVATION ====================
 
-if ($Debloat) {
+    Get-ElevatedTerminal -OriginalParameters $PSBoundParameters
 
-    $debloatPath = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\txt\debloat.txt"
+    # ==================== PREREQUISITES CHECK ====================
 
-    if (Test-Path -Path $debloatPath -PathType Leaf) {
+    write-Status -Status ACTION -Message "Running prerequisite checks..."
 
-        $argParams = @{}
+    # Check for Windows 11.
+
+    if ([System.Environment]::OSVersion.Version.Build -lt 22000) {
+        throw "Windows 11 is required for this script to run."
+    }
+
+    # Check for whether to enable backups or not.
+    # Disable if running in Windows Sandbox as read-only access and... it's a sandbox.
+
+    if ([Environment]::UserName -eq 'WDAGUtilityAccount') {
+        Write-Status -Status WARN -Message "Backups disabled (Windows Sandbox detected)." -Indent 1
+        $global:g_BackupsEnabled = $false
+    }
+
+    # Check for >1 user logged in when -AllUsers is used.
+
+    if ($global:g_AllUsers) {
+        if ((Get-ActiveUserSessionCount) -gt 1) {
+            throw "Please ensure you are the only logged on user with the -AllUsers switch."
+        }
+    }
+
+    # ==================== BACKUP INITIALISATION ====================
+
+    if ($global:g_BackupsEnabled -eq $true) {
+        # Initialise the backup folders.
+        New-BackupDirectory -BackupPath $global:g_BackupDirectory
+    }
+
+    # ==================== STOP EXPLORER ====================
+
+    $explorerStopSuccess = Stop-Explorer
+
+    # ==================== REGISTRY TWEAKS ====================
+
+    if ($global:g_RegistryTweaksEnabled -eq $true) {
+
+        Write-Status -Status ACTION -Message "Starting registry tweaks..."
+
+        $keyArray = Get-ChildItem -Path (Join-Path $global:g_scriptParentDir "assets\reg") -Include *.reg -Recurse -ErrorAction SilentlyContinue
+
+        $argParams = @{
+            KeyArray = $keyArray
+        }
 
         if ($global:g_DefaultUserOnly) {
             $argParams.DefaultUser = $true
@@ -189,48 +170,103 @@ if ($Debloat) {
             $argParams.AllUsers = $true
         }
 
-        Start-Debloat -DebloatConfig $debloatPath @argParams
+        Import-RegKeys @argParams
     }
-}
 
-# ==================== SET APPROPRIATE POWER PLAN ====================
+    # ==================== Start Menu ====================
 
-# Balanced for X3D, High Performance otherwise.
-# Disable sleep whilst AC powered if target plan is balanced.
+    if ($global:g_DefaultUserOnly) {
 
-Write-Status -Status ACTION -Message "Setting appropriate power plan..."
+        $start2Path = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\bin\StartMenu\start2.bin"
 
-if (!(Set-PowerPlan)) {
-    Write-Status -Status FAIL -Message "Power plan change failed." -Indent 1
-}
-
-# ==================== ENABLE FEATURES ====================
-
-Write-Status -Status ACTION -Message "Processing Windows Firewall rules..."
-
-if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
-    Add-FirewallRules
-}
-
-# ==================== REMOVE SHORTCUTS ====================
-
-$publicDesktopShortcuts = @(
-    'Microsoft Edge.lnk'
-)
-
-Remove-PublicDesktopShortcuts -ShortcutArray $publicDesktopShortcuts
-
-# ==================== NOTEPAD SETTINGS (CURRENT USER) ====================
-
-Write-Status -Status ACTION -Message "Processing Notepad settings..." -Indent 1
-try {
-
-    $notepadTweakPath = (Join-Path $global:g_scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
-    $notepadResult = $false
-
-    $argParams = @{
-        TweakPath = $notepadTweakPath
+        if (Test-Path -Path $start2Path -PathType Leaf) {
+            Copy-DefaultStartMenu -Start2Path $start2Path
+        }
     }
+
+    # ==================== DEBLOAT ====================
+
+    if ($Debloat) {
+
+        $debloatPath = Join-Path -Path $global:g_scriptParentDir -ChildPath "assets\txt\debloat.txt"
+
+        if (Test-Path -Path $debloatPath -PathType Leaf) {
+
+            $argParams = @{}
+
+            if ($global:g_DefaultUserOnly) {
+                $argParams.DefaultUser = $true
+            } elseif ($global:g_AllUsers) {
+                $argParams.AllUsers = $true
+            }
+
+            Start-Debloat -DebloatConfig $debloatPath @argParams
+        }
+    }
+
+    # ==================== SET APPROPRIATE POWER PLAN ====================
+
+    # Balanced for X3D, High Performance otherwise.
+    # Disable sleep whilst AC powered if target plan is balanced.
+
+    Write-Status -Status ACTION -Message "Setting appropriate power plan..."
+
+    if (!(Set-PowerPlan)) {
+        Write-Status -Status FAIL -Message "Power plan change failed." -Indent 1
+    }
+
+    # ==================== ENABLE FEATURES ====================
+
+    Write-Status -Status ACTION -Message "Processing Windows Firewall rules..."
+
+    if ([Environment]::UserName -ne 'WDAGUtilityAccount') {
+        Add-FirewallRules
+    }
+
+    # ==================== REMOVE SHORTCUTS ====================
+
+    $publicDesktopShortcuts = @(
+        'Microsoft Edge.lnk'
+    )
+
+    Remove-PublicDesktopShortcuts -ShortcutArray $publicDesktopShortcuts
+
+    # ==================== NOTEPAD SETTINGS (CURRENT USER) ====================
+
+    Write-Status -Status ACTION -Message "Processing Notepad settings..." -Indent 1
+    try {
+
+        $notepadTweakPath = (Join-Path $global:g_scriptParentDir "assets\dat\WindowsNotepad\Settings.dat")
+        $notepadResult = $false
+
+        $argParams = @{
+            TweakPath = $notepadTweakPath
+        }
+
+        if ($global:g_DefaultUserOnly) {
+            $argParams.DefaultUser = $true
+        } elseif ($global:g_AllUsers) {
+            $argParams.AllUsers = $true
+        }
+
+        $notepadResult = Import-NotepadTweaks @argParams
+
+        if (-not $notepadResult) {
+            Write-Status -Status WARN -Message "Notepad tweak processing completed with one or more errors." -Indent 1
+        }
+    }
+    catch {
+        Write-Status -Status FAIL -Message "Failed to apply Notepad tweaks. Error: $($_.Exception.Message)" -Indent 1
+    }
+
+    # ==================== REMOVE ONEDRIVE ====================
+
+    # Modes:
+    # CurrentUser: Only run HKCU uninstallers.
+    # AllUsers: Run uninstallers found in HKCU and HKLM, and notify of other user installations (if applicable).
+    # DefaultUser: Remove from registry Default registry hive.
+
+    $argParams = @{}
 
     if ($global:g_DefaultUserOnly) {
         $argParams.DefaultUser = $true
@@ -238,66 +274,47 @@ try {
         $argParams.AllUsers = $true
     }
 
-    $notepadResult = Import-NotepadTweaks @argParams
+    Remove-OneDrive @argParams
 
-    if (-not $notepadResult) {
-        Write-Status -Status WARN -Message "Notepad tweak processing completed with one or more errors." -Indent 1
+    # ==================== RESURRECT EXPLORER ====================
+
+    # A little bit of error handling as there's currently a bug or "feature" within Windows Sandbox (insider build)
+    # where taskkill permissions are denied. If we can't keep explorer killed whilst registry tweaks are applied, some
+    # settings won't stick (such as small icons).
+
+    Start-Explorer -ExplorerStoppedSuccessfully $explorerStopSuccess
+
+    # ==================== APPLY WALLPAPER CHANGES ====================
+
+    if (Update-Wallpaper) {
+        Write-Status -Status OK -Message "Wallpaper applied." -Indent 1
+    } else {
+        Write-Status -Status FAIL -Message "Failed to apply wallpaper." -Indent 1
     }
-}
-catch {
-    Write-Status -Status FAIL -Message "Failed to apply Notepad tweaks. Error: $($_.Exception.Message)" -Indent 1
-}
 
-# ==================== REMOVE ONEDRIVE ====================
-
-# Modes:
-# CurrentUser: Only run HKCU uninstallers.
-# AllUsers: Run uninstallers found in HKCU and HKLM, and notify of other user installations (if applicable).
-# DefaultUser: Remove from registry Default registry hive.
-
-$argParams = @{}
-
-if ($global:g_DefaultUserOnly) {
-    $argParams.DefaultUser = $true
-} elseif ($global:g_AllUsers) {
-    $argParams.AllUsers = $true
-}
-
-Remove-OneDrive @argParams
-
-# ==================== RESURRECT EXPLORER ====================
-
-# A little bit of error handling as there's currently a bug or "feature" within Windows Sandbox (insider build)
-# where taskkill permissions are denied. If we can't keep explorer killed whilst registry tweaks are applied, some
-# settings won't stick (such as small icons).
-
-Start-Explorer -ExplorerStoppedSuccessfully $explorerStopSuccess
-
-# ==================== APPLY WALLPAPER CHANGES ====================
-
-if (Update-Wallpaper) {
-    Write-Status -Status OK -Message "Wallpaper applied." -Indent 1
-} else {
-    Write-Status -Status FAIL -Message "Failed to apply wallpaper." -Indent 1
+    # ==================== REFRESH DESKTOP ====================
+    Write-Status -Status ACTION -Message "Updating the desktop..."
+    Update-Desktop
+} catch {
+    Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+    exit 1
+} finally {
+     # ==================== CLEAN-UP ====================
+     Write-Status -Status ACTION -Message "Cleaning up..."
+     Get-Variable -Scope Global -ErrorAction SilentlyContinue | Where-Object {$_.Name -like "g_*"} | ForEach-Object {$_ | Remove-Variable -ErrorAction SilentlyContinue}
+ 
+     Write-Status -Status OK -Message "Clean-up complete." -Indent 1
+ 
+     # ==================== DONE ====================
+ 
+     Write-Host
+     Write-Status -Status OK -Message "Script execution complete."
+ 
+     if ($Wait) {
+         Write-Host
+         Write-Status -Status INFO -Message "Press any key to continue..."
+         $null = $host.UI.RawUI.ReadKey("NoEcho, IncludeKeyDown")
+     }
 }
 
-# ==================== REFRESH DESKTOP ====================
-Write-Status -Status ACTION -Message "Updating the desktop..."
-Update-Desktop
 
-# ==================== CLEAN-UP ====================
-Write-Status -Status ACTION -Message "Cleaning up..."
-Get-Variable -Scope Global -ErrorAction SilentlyContinue | Where-Object {$_.Name -like "g_*"} | ForEach-Object {$_ | Remove-Variable -ErrorAction SilentlyContinue}
-
-Write-Status -Status OK -Message "Clean-up complete." -Indent 1
-
-# ==================== DONE ====================
-
-Write-Host
-Write-Status -Status OK -Message "Script execution complete."
-
-if ($Wait) {
-    Write-Host
-    Write-Status -Status INFO -Message "Press any key to continue..."
-    $null = $host.UI.RawUI.ReadKey("NoEcho, IncludeKeyDown")
-}

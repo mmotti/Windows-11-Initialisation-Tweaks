@@ -208,23 +208,30 @@ function Import-RegKeys {
 
             Write-Status -Status ACTION -Message "Starting registry import process (Mode: $_)."
 
-            $defaultHiveWasLoadedSuccessfully = $false
-
             try {
 
                 if ($_ -eq "DefaultUser") {
+
                     Write-Status -Status ACTION -Message "Attempting to load Default User hive..." -Indent 1
+
                     $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
-                    $defaultHiveWasLoadedSuccessfully = Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath
-                    if (-not $defaultHiveWasLoadedSuccessfully) {
-                        # Get-UserRegistryHive should write the specific error. We just need to stop.
-                        Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
-                        return # Exit function if hive load fails
+                    $defaultHiveLoaded = $false
+
+                    if (!(Test-Path -Path "Registry::HKU\TempDefault")) {
+                        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
+                            $defaultHiveLoaded = $true
+                        } else {
+                             # Get-UserRegistryHive should write the specific error. We just need to stop.
+                             Write-Status -Status FAIL -Message "Failed to load Default User hive. Cannot proceed with registry imports for DefaultUser mode." -Indent 1
+                             return
+                        }
                     }
+
                     Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
                 }
 
                 foreach ($key in $validKeys) {
+
                     $originalFilePath = $key.FullName
                     $tempFilePath = $null
                     $importFile = $originalFilePath
@@ -267,12 +274,11 @@ function Import-RegKeys {
                     }
                 }
             } finally {
-                if ($_ -eq "DefaultUser" -and $defaultHiveWasLoadedSuccessfully) {
+                if ($_ -eq "DefaultUser" -and $defaultHiveLoaded) {
                     $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
                 }
             }
         }
-
         default {
             Write-Status -Status FAIL -Message "Unexpected ParameterSet. Unable to continue." -Indent 1
             return
@@ -926,17 +932,19 @@ function Remove-OneDrive {
                     $oneDriveKeyValue = "OneDriveSetup"
                     $defaultUserRunPath = "Registry::HKU\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
                     $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
+                    $defaultHiveLoaded = $false
 
                     Write-Status -Status ACTION -Message "Loading the Default user's registry hive..." -Indent 1
 
-                    if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
-                        Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
-                    } else {
-                        Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded." -Indent 1
-                        return
+                    if (!(Test-Path -Path "Registry::HKU\TempDefault")) {
+                        if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
+                            $defaultHiveLoaded = $true
+                            Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
+                        } else {
+                            Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded." -Indent 1
+                            return
+                        }
                     }
-
-                    $hiveLoaded = $true
 
                     $oneDriveDefaultUserSetup =  Get-ItemProperty -Path $defaultUserRunPath -Name $oneDriveKeyValue -ErrorAction SilentlyContinue
 
@@ -964,7 +972,7 @@ function Remove-OneDrive {
         }
     }
     finally {
-        if ($hiveLoaded) {
+        if ($defaultHiveLoaded) {
             $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
         }
     }

@@ -195,7 +195,7 @@ function Import-RegKeys {
                 }
             }
         }
-        
+
         {$_ -eq "CurrentUser" -or $_ -eq "DefaultUser"} {
 
             Write-Status -Status ACTION -Message "Starting registry import process (Mode: $_)."
@@ -336,7 +336,10 @@ function Start-Debloat {
         return
     }
 
-    $debloatConfigContent = Get-Content -Path $DebloatConfig -ErrorAction SilentlyContinue
+    $debloatConfigContent = Get-Content -Path $DebloatConfig -ErrorAction SilentlyContinue | 
+                            Sort-Object -Unique | 
+                            ForEach-Object {$_.Trim(" *")} |
+                            Where-Object {![string]::IsNullOrEmpty($_)}
 
     if (!$debloatConfigContent) {
         Write-Status -Status WARN -Message "No content was found within: $DebloatConfig"
@@ -358,16 +361,9 @@ function Start-Debloat {
     Write-Status -Status ACTION -Message "Starting debloat process (Mode: $mode)..."
 
     $debloatConfigContent | ForEach-Object {
-
-        # Remove any existing wildcards or spaces at the start / end of the strings.
-        $appName = $_.Trim(" *")
-
-        if ([string]::IsNullOrEmpty($appName)) {
-            return
-        }
-
+        
         # Add the wildcards to our trimmed strings.
-        $appName = "*$appName*"
+        $appName = "*$_*"
 
         Write-Status -Status ACTION -Message "Processing: $appName" -Indent 1
 

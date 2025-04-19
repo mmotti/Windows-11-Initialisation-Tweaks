@@ -181,8 +181,8 @@ You can easily use this script to initialize a Windows Sandbox environment on la
   </MappedFolders>
   <LogonCommand>
     <!-- Command to run the script inside the Sandbox -->
-    <!-- Example: Run default tweaks + debloat -->
-    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Tweaks\Tweaks.ps1 -Debloat</Command>
+    <!-- Example: Run default tweaks and don't wait -->
+    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Tweaks\Tweaks.ps1 -NoWait</Command>
   </LogonCommand>
 </Configuration>
 ```

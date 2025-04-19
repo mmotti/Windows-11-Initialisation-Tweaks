@@ -70,50 +70,6 @@ function Get-ElevatedTerminal {
     }
 }
 
-function Get-HKUDrive {
-
-    [CmdletBinding(DefaultParameterSetName='Load')] # Default set is Load
-    param (
-        # --- Parameter Set: Load ---
-        [Parameter(Mandatory=$true,
-                   ParameterSetName='Load',
-                   HelpMessage="Loads the specified registry hive.")]
-        [switch]$Load,
-
-        # --- Parameter Set: Unload ---
-        [Parameter(Mandatory=$true,
-                   ParameterSetName='Unload',
-                   HelpMessage="Unloads the specified registry hive.")]
-        [switch]$Unload
-    )
-
-    switch ($PSCmdlet.ParameterSetName) {
-        "Load" {
-            try {
-                if (!(Get-PSdrive -Name HKU -ErrorAction SilentlyContinue)) {
-                    $null = New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
-                }
-            }
-            catch {
-                throw "Unable to load PSDrive: $($_.Exception.Message)"
-            }
-        }
-        "Unload" {
-            try {
-                if (Get-PSdrive -Name HKU -ErrorAction SilentlyContinue) {
-                    $null = Remove-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS -ErrorAction Stop
-                }
-            }
-            catch {
-                throw "Unable to unload PSDrive: $($_.Exception.Message)"
-            }
-        }
-        default {
-            throw "Unexpected ParameterSet. Unable to continue."
-        }
-    }
-}
-
 function Import-RegKeys {
     [CmdletBinding(DefaultParameterSetName='CurrentUser')]
     param (
@@ -154,54 +110,87 @@ function Import-RegKeys {
         "AllUsers" {
             Write-Status -Status ACTION -Message "Starting registry import process (Mode: AllUsers)."
 
-            $userSids = Get-AllUserSids
+            $profileList = Get-ProfileList
 
-            if ($null -eq $userSids -or $userSids.Count -eq 0) {
+            if ($null -eq $profileList -or $profileList.Count -eq 0) {
                 Write-Status -Status FAIL -Message "AllUsers mode failed: No sids were returned during the lookup." -Indent 1
                 return
             }
 
-            foreach ($sid in $userSids) {
-                Write-Status -Status ACTION -Message "Processing user: $sid" -Indent 1
+            foreach ($profile in $profileList) {
+                # Try block primarily so we can have a "finally" to unload registry hives if necessary.
+                try {
+                    $sid = $profile.SID
+                    $profilePath = $profile.ProfileImagePath
 
-                foreach ($key in $validKeys) {
-                    $originalFilePath = $key.FullName
-                    $tempFilePath = $null
-                    $importFile = $originalFilePath
+                    $userHiveLoaded = $null
 
-                    try {
+                    Write-Status -Status ACTION -Message "Processing user: $sid" -Indent 1
 
-                        $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
-                        $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
+                    # Mount the registry hive if the user is not logged in
+                    if (!(Test-Path -Path "Registry::HKU\$sid")) {
 
-                        if ($originalContent -ne $modifiedContent) {
-                            $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
-                            Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
-                            $importFile = $tempFilePath
+                        $userRegHivePath = Join-Path $profilePath "NTUSER.dat"
+
+                        if (!(Test-Path -Path $userRegHivePath -PathType Leaf)) {
+                            throw "Path not found: $userRegHivePath"
                         }
 
-                        if ($global:g_BackupsEnabled -eq $true) {
-                            if (!(Export-RegKeys -KeyPath $importFile)) {
-                                Write-Status -Status FAIL -Message "$($key.Name): Failed to create registry backup." -Indent 1
-                                continue
+                        $userHiveLoaded = Get-UserRegistryHive -Load -HiveName HKU\$sid -HivePath $userRegHivePath
+
+                        if (!$userHiveLoaded) {
+                            throw "Unable to load registry hive for SID ($sid). Error: $($_.Exception.Message)"
+                        }
+                    }
+
+                    foreach ($key in $validKeys) {
+                        $originalFilePath = $key.FullName
+                        $tempFilePath = $null
+                        $importFile = $originalFilePath
+
+                        try {
+
+                            $originalContent = Get-Content -Path $originalFilePath -Raw -Encoding Unicode -ErrorAction Stop
+                            $modifiedContent = $originalContent -replace "(?im)^\[HKEY_CURRENT_USER", "[HKEY_USERS\$sid"
+
+                            if ($originalContent -ne $modifiedContent) {
+                                $tempFilePath = Join-Path $env:TEMP "$([guid]::NewGuid()).reg"
+                                Set-Content -Path $tempFilePath -Value $modifiedContent -Encoding Unicode -ErrorAction Stop
+                                $importFile = $tempFilePath
+                            }
+
+                            if ($global:g_BackupsEnabled -eq $true) {
+                                if (!(Export-RegKeys -KeyPath $importFile)) {
+                                    throw "$($key.Name): Failed to create registry backup."
+                                }
+                            }
+
+                            $result = reg import "$importFile" 2>&1
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "$($key.Name): $($result -replace '^ERROR:\s*', '')"
+                            } else {
+                                Write-Status -Status OK -Message "$($key.Name)" -Indent 1
                             }
                         }
-
-                        $result = reg import "$importFile" 2>&1
-
-                        if ($LASTEXITCODE -ne 0) {
-                            Write-Status -Status FAIL -Message "$($key.Name): $($result -replace '^ERROR:\s*', '')" -Indent 1
-                        } else {
-                            Write-Status -Status OK -Message "$($key.Name)" -Indent 1
+                        catch {
+                            Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) " -Indent 1
+                            continue
+                        }
+                        finally {
+                            if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
+                                Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
+                            }
                         }
                     }
-                    catch {
-                    Write-Status -Status FAIL -Message "$($key.Name): An error occurred during the import process for user: $sid. Error: $($_.Exception.Message) " -Indent 1
-                    }
-                    finally {
-                        if ($null -ne $tempFilePath -and (Test-Path -Path $tempFilePath)) {
-                            Remove-Item -Path $tempFilePath -Force -ErrorAction SilentlyContinue
-                        }
+                }
+                catch {
+                    Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+                    continue
+                }
+                finally {
+                    if ($userHiveLoaded) {
+                        $null = Get-UserRegistryHive -Unload -HiveName HKU\$sid
                     }
                 }
             }
@@ -369,7 +358,7 @@ function Start-Debloat {
     Write-Status -Status ACTION -Message "Starting debloat process (Mode: $mode)..."
 
     $debloatConfigContent | ForEach-Object {
-        
+
         # Remove any existing wildcards or spaces at the start / end of the strings.
         $appName = $_.Trim(" *")
 
@@ -850,8 +839,6 @@ function Remove-OneDrive {
 
                             try {
 
-                                Get-HKUDrive -Load
-
                                 $userSids = Get-AllUserSids
 
                                 if ($null -eq $userSids -or $userSids.Count -eq 0) {
@@ -864,7 +851,7 @@ function Remove-OneDrive {
 
                                 foreach ($path in $oneDriveHKCUPathsToCheck) {
                                         foreach ($sid in $otherUserSids) {
-                                            $targetHKUPath = $path -replace "^HKCU:", "HKU:\$sid"
+                                            $targetHKUPath = $path -replace "^HKCU:", "Registry::HKU\$sid"
                                             if (Test-Path -Path $targetHKUPath) {
 
                                                 $userIdentifier = $sid
@@ -900,14 +887,13 @@ function Remove-OneDrive {
                     try {
 
                         $oneDriveKeyValue = "OneDriveSetup"
-                        $defaultUserRunPath = "HKU:\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
+                        $defaultUserRunPath = "Registry::HKU\TempDefault\Software\Microsoft\Windows\CurrentVersion\Run"
                         $defaultHivePath = if ([string]::IsNullOrEmpty($global:g_DefaultUserCustomHive)) {Join-Path $env:SystemDrive "Users\Default\NTUSER.dat"} else {$global:g_DefaultUserCustomHive}
 
                         Write-Status -Status ACTION -Message "Loading the Default user's registry hive..." -Indent 1
 
                         if (Get-UserRegistryHive -Load -HiveName HKU\TempDefault -HivePath $defaultHivePath) {
                             Write-Status -Status OK -Message "Hive loaded successfully." -Indent 1
-                            Get-HKUDrive -Load
                         } else {
                             Write-Status -Status FAIL -Message "Unable to continue searching for OneDrive without hive loaded." -Indent 1
                             return
@@ -919,7 +905,7 @@ function Remove-OneDrive {
 
                         if ($oneDriveDefaultUserSetup) {
                             try {
-                                Write-Status -Status ACTION -Message "Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "HKU:", "HKEY_USERS")" -Indent 1
+                                Write-Status -Status ACTION -Message "Removing $oneDriveKeyValue from $($defaultUserRunPath -replace "Registry::HKU", "HKEY_USERS")" -Indent 1
                                 $oneDriveDefaultUserSetup | Remove-ItemProperty -Name $oneDriveKeyValue -Force
                                 Write-Status -Status OK -Message "Registry key removed." -Indent 1
                             }
@@ -941,7 +927,6 @@ function Remove-OneDrive {
             }
         }
         finally {
-            Get-HKUDrive -Unload
             if ($hiveLoaded) {
                 $null = Get-UserRegistryHive -Unload -HiveName HKU\TempDefault
             }
@@ -999,18 +984,8 @@ function Get-UserRegistryHive {
 
     # We need to check whether the HKU:\TempDefault hive is already loaded or we will encounter errors.
 
-    try {
-        Get-HKUDrive -Load
-        if (Test-Path -Path "HKU:\$HiveName") {
-            return $true
-        }
-    }
-    catch {
-        Write-Status -Status FAIL -Message "Unable to create PSDrive: $($_.Exception.Message)" -Indent 1
-        return $false
-    }
-    finally {
-        Get-HKUDrive -Unload
+    if (Test-Path -Path "Registry::HKU\$HiveName") {
+        return $true
     }
 
     switch ($mode) {
@@ -1030,6 +1005,7 @@ function Get-UserRegistryHive {
         "Unload" {
             try {
                 Wait-RegeditExit
+                [System.GC]::Collect()
                 $null = reg unload $HiveName 2>&1
                 if ($LASTEXITCODE -ne 0) {
                     throw "Unable to unload the Default user's registry hive."
@@ -1130,31 +1106,37 @@ function Get-ProfileList {
        return @()
    }
 
-   $filteredProfiles = $profileList | Where-Object {
+   $filteredProfiles = foreach ($profile in $profileList) {
+
+        $sid = $profile.PSChildName
         $profilePath = $null
-        $sid = $_.PSChildName
 
         try {
-            $profilePath = $_.GetValue("ProfileImagePath", $null)
-            if ($null -eq $profilePath) {return $false}
+            $profilePath = $profile.GetValue("ProfileImagePath", $null)
+            if ($null -eq $profilePath) {continue}
         } catch {
             Write-Status -Status WARN -Message "Could not read ProfileImagePath for SID $sid. Error: $($_.Exception.Message)" -Indent 1
-            return $false
-        }
-
-        if (!(Test-Path -Path $profilePath -PathType Container)) {
-            return $false
+            continue
         }
 
         if ($sid -match "^(S-1-5-(18|19|20)|S-1-5-93-2-(1|2)|\.DEFAULT)$") {
-            return $false
+            continue
         }
+
+
+        if (!(Test-Path -Path $profilePath -PathType Container)) {
+            continue
+        }
+
 
         if ((Split-Path -Path $profilePath -Leaf) -in $excludedProfiles) {
-            return $false
+            continue
         }
 
-        return $true
+        [PSCustomObject]@{
+            SID              = $sid
+            ProfileImagePath = $profilePath
+        }
    }
 
    if ($null -eq $filteredProfiles -or $filteredProfiles.Count -eq 0) {
@@ -1167,11 +1149,11 @@ function Get-ProfileList {
 }
 
 function Get-AllUserSids {
-    return Get-ProfileList | Select-Object -ExpandProperty PSChildName
+    return Get-ProfileList | Select-Object -ExpandProperty SID
 }
 
 function Get-AllUserProfilePaths {
-   return Get-ProfileList | ForEach-Object {$_.GetValue("ProfileImagePath")}
+   return Get-ProfileList | Select-Object -ExpandProperty ProfileImagePath
 }
 
 function Remove-PublicDesktopShortcuts {

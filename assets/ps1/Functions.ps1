@@ -1156,6 +1156,27 @@ function Get-AllUserProfilePaths {
    return Get-ProfileList | Select-Object -ExpandProperty ProfileImagePath
 }
 
+function Get-ActiveUserSessionCount {
+  
+    # Sanity check to ignore calls if not using the correct switch.
+    if (!$global:g_AllUsers) {
+        return 0
+    }
+
+    try {
+        $quserOutputLines = quser /server:$env:COMPUTERNAME 2>&1
+        if (!$?) {
+            throw "Query User command failed. Unable to determine number of logged on users."
+        }
+    }
+    catch {
+        throw $_.Exception.Message
+    }
+
+    # Skip the header row and return count of active sessions.
+    return @($quserOutputLines | Select-Object -Skip 1).Count
+}
+
 function Remove-PublicDesktopShortcuts {
     [CmdletBinding()]
     param (

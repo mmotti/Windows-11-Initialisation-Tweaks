@@ -35,12 +35,12 @@ This script performs a range of actions, including:
     *   Enables RDP (registry settings and firewall rules).
     *   Disables Windows Update Delivery Optimization (P2P downloads).
 *   **Debloating & Cleanup (Optional):**
-    *   Removes specified AppX packages (see [assets/txt/debloat.txt](assets/txt/debloat.txt)) using the `-Debloat` switch.
+    *   Removes specified AppX packages (see [assets/txt/debloat.txt](assets/txt/debloat.txt)) using the [`-Debloat`](#debloating) switch.
     *   Removes the Microsoft Edge shortcut from the Public Desktop.
     *   Uninstalls OneDrive (scope depends on execution mode).
 *   **Application Settings:**
     *   Applies custom settings for Notepad (WordWrap, new window default, etc.).
-    *   Copies a clean Start Menu layout for new users (when using `-DefaultUser` mode).
+    *   Copies a clean Start Menu layout for new users (when using [`-DefaultUser`](#script-modes) mode).
 
 ## Prerequisites
 
@@ -50,7 +50,7 @@ This script performs a range of actions, including:
 
 ## Installation
 
-1.  Download the script files (ensure you have `Tweaks.ps1` and the `assets` folder in the same directory). You can clone the repository or download a ZIP archive.
+1.  Download the script files (ensure you have `Tweaks.ps1` and the [assets](assets) folder in the same directory). You can clone the repository or download a ZIP archive.
 2.  Open PowerShell **as Administrator**.
 3.  Navigate to the script's directory using `cd`:
     ```powershell
@@ -140,9 +140,9 @@ The `-AllUsers` and `-DefaultUser` modes change how certain actions are performe
 | :-------------------- | :---------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------- |
 | **Registry Tweaks**   | Applies HKCU keys to current user. Applies HKLM keys system-wide.                   | Converts HKCU keys and applies them to *each existing user's* profile. Applies HKLM keys system-wide.       | Converts HKCU keys and applies them to the *Default User's* registry hive (for new users). Applies HKLM keys system-wide. |
 | **Debloat** (`-Debloat`) | Uninstalls specified packages for the *current user*.                               | Uninstalls for *all users* AND removes *provisioned packages* (for new users).                                | Removes *provisioned packages* only (for new users).                                                               |
-| **Notepad Settings**  | Copies `settings.dat` to the *current user's* Notepad settings folder.              | Copies `settings.dat` to *each existing user's* Notepad settings folder.                                      | Copies `settings.dat` to the *Default User's* relative Notepad settings folder (for new users).                    |
+| **Notepad Settings**  | Copies [settings.dat](assets/dat//WindowsNotepad/settings.dat) to the *current user's* Notepad settings folder.              | Copies [settings.dat](assets/dat//WindowsNotepad/settings.dat) to *each existing user's* Notepad settings folder.                                      | Copies [settings.dat](assets/dat//WindowsNotepad/settings.dat) to the *Default User's* relative Notepad settings folder (for new users).                    |
 | **OneDrive Removal**  | Runs uninstallers found in *current user's* registry (HKCU).                        | Runs HKCU & HKLM uninstallers. *Notifies* if OneDrive is detected in other user profiles (manual removal needed). | Removes OneDrive setup entry from the *Default User's* registry hive (for new users).                              |
-| **Start Menu Layout** | No action.                                                                          | No action.                                                                                                    | Copies `start2.bin` to the *Default User* profile (for new users).                                                 |
+| **Start Menu Layout** | No action.                                                                          | No action.                                                                                                    | Copies [start2.bin](assets/bin/StartMenu/start2.bin) to the *Default User* profile (for new users).                                                 |
 
 **Note:** System-wide settings (like HKLM registry keys, firewall rules, power plans) are generally applied regardless of the chosen mode. The mode primarily dictates how user-specific settings (HKCU registry, user-installed apps, profile files) are handled.
 

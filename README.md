@@ -10,15 +10,6 @@ This PowerShell script helps streamline the setup of a fresh Windows 11 installa
 - Use at your own risk.
 - Backups are enabled by default (except in Windows Sandbox).
 
-
-**Default User Customizations:** When a new user logs in for the first time, Windows runs its own setup process which can overwrite certain settings (like Taskbar Search or Windows Spotlight) previously applied to the Default User template (`NTUSER.DAT`).
-
-**Recommendation:** For the most reliable results with these types of settings:
-1.  Allow new users to log in **once** to complete the initial Windows profile creation.
-2.  **After** that first login, apply your custom settings by either:
-     *   Running this script while logged in as the new user (targets current profile).
-     *   Logging back in as an administrator and using the `-AllUsers` parameter (targets all existing profiles, including the newly initialized one).
-
 ## Features
 
 This script performs a range of actions, including:
@@ -94,6 +85,9 @@ These options change the *scope* of where the tweaks are applied:
 *   **`-AllUsers`**: Attempts to apply relevant settings (Registry HKCU tweaks, Debloating, Notepad settings, OneDrive removal) to **all existing user profiles** found on the system (excluding the Default profile). HKLM settings are applied normally.
 *   **`-DefaultUser`**: Attempts to apply relevant settings (Registry HKCU tweaks converted for Default, Debloating provisioned packages, Notepad settings, OneDrive setup removal) to the **Default User profile**. This affects **future users** created on the system. HKLM settings are applied normally.
     *   **`-DefaultUserCustomHive "PATH\TO\NTUSER.DAT"`**: (Use with `-DefaultUser`) Specify a path to a custom `NTUSER.dat` file for the Default User profile, instead of the system's default one.
+    * **Note:** Some changes made to the Default User profile will be overwritten by Windows when a new profile is created. For more details, check out [Important Notes](#important-notes).
+
+    
 
 *(If no mode switch is specified, the script defaults to applying settings only to the **Current User**.)*
 
@@ -196,3 +190,11 @@ Save this configuration as a `.wsb` file (e.g., `SandboxTweak.wsb`) and double-c
 *   **Backups:** The script automatically backs up registry keys it intends to modify to a `backups` subfolder unless `-EnableBackups $false` is used or when run in Windows Sandbox.
 *   **Explorer Restart:** The script temporarily stops `explorer.exe` to ensure certain settings (like taskbar alignment and icon sizes) apply correctly. It will restart Explorer automatically before finishing.
 *   **Compatibility:** While designed for Windows 11, some tweaks might work on Windows 10, but this is not tested or guaranteed.
+
+* **Default User Customizations:** When a new user logs in for the first time, Windows runs its own setup process which can overwrite certain settings (like Taskbar Search or Windows Spotlight) previously applied to the Default User template (`NTUSER.DAT`).
+
+    <u>Recommendation</u>: For the most reliable results with these types of settings:
+    1.  Allow new users to log in **once** to complete the initial Windows profile creation.
+    2.  **After** that first login, apply your custom settings by either:
+        *   Running this script while logged in as the new user (targets current profile).
+        *   Logging back in as an administrator and using the `-AllUsers` parameter (targets all existing profiles, including the newly initialized one).

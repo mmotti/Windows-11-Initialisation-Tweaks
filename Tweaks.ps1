@@ -105,7 +105,7 @@ try {
 
 # ==================== MAIN SCRIPT BODY ====================
 
-# Try block we can make us of finally
+# Use a try block we can make use of finally.
 try {
 
     $global:g_scriptPath = $scriptPath

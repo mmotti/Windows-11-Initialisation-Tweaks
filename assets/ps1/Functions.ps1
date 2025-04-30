@@ -783,8 +783,6 @@ function Remove-OneDrive {
     "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
     ) | Sort-Object -Unique
 
-    $hiveLoaded = $false
-
     try {
         switch ($PSCmdlet.ParameterSetName) {
             {$_ -eq "CurrentUser" -or $_ -eq "AllUsers"} {

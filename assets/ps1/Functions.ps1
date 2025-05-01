@@ -1212,7 +1212,7 @@ function Get-ActiveUserSessionCount {
     }
     catch {
         Write-Status -Status FAIL -Message "It was not possible to determine the number of logged on users." -Indent 1
-        Write-Status -Status WARN -Message "When the -AllUsers parameter is in use, there must not be any other logged on users." -Indent 1
+        Write-Status -Status WARN -Message "When the -AllUsers parameter is in use, there must not be any other logged in users." -Indent 1
         while ($true) {
             $result = Read-Host "[>>] Please confirm that you are the only logged on user (Y/N)"
             switch ($result) {

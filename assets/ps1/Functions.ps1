@@ -565,28 +565,7 @@ function Set-PowerPlan {
             throw "No power schemes were returned by the query."
         }
 
-        $processorString = $null
-        $hasBattery = $false
-        $isX3D = $false
-
-        try {
-            $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
-        }
-        catch {
-            Write-Status -Status WARN -Message "It was not possible to obtain the processor string." -Indent 1
-        }
-
-        try {
-            if (Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop) {
-                $hasBattery = $true
-            }
-        }
-        catch {
-            Write-Status -Status WARN -Message "It was not possible to determine whether a battery is present." -Indent 1
-        }
-
-        $isX3D = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
-        $targetPlan = if ($isX3D -or $hasBattery) { "Balanced" } else { "High performance" }
+        $targetPlan = "Balanced"
 
         # Use regex matching against the power plan list in case M$ ever decides to change them.
         $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
@@ -612,14 +591,31 @@ function Set-PowerPlan {
             }
         }
 
+        $hasBattery = $false
+        $batteryCheckSucceeded = $false
+
+        try {
+            $hasBattery = [bool](Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop)
+            $batteryCheckSucceeded = $true
+        } catch {
+            Write-Status -Status WARN -Message "It was not possible to determine whether a battery is present." -Indent 1
+        }
+
+        if (!$batteryCheckSucceeded) {
+            Write-Status -Status WARN -Message "Skipping sleep mode modification (battery check failed)." -Indent 1
+            return
+        }
+
         # Disable sleep mode for machines that don't have a battery installed.
-        if ($hasBattery -eq $false) {
+        if (!$hasBattery) {
             powercfg /change standby-timeout-ac 0
             if ($LASTEXITCODE -eq 0) {
                 Write-Status -Status OK -Message "Sleep mode disabled." -Indent 1
             } else {
                 throw "Unable to disable sleep mode."
             }
+        } else {
+            Write-Status -Status INFO -Message "Skipping sleep mode modification (battery detected)." -Indent 1
         }
 
         return $true

@@ -29,7 +29,7 @@ This script performs a range of actions, including:
     *   Disables Widgets.
     *   Disables Copilot+ Recall feature (registry key).
 *   **System Configuration:**
-    *   Sets an appropriate power plan (Balanced for X3D CPUs, High Performance otherwise).
+    *   Set Balanced as the active power plan.
     *   Disables sleep mode on AC power if no battery is detected.
     *   Disables Fast Startup.
     *   Enables RDP (registry settings and firewall rules).

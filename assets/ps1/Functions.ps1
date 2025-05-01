@@ -350,8 +350,8 @@ function Start-Debloat {
         return
     }
 
-    $debloatConfigContent = Get-Content -Path $DebloatConfig -ErrorAction SilentlyContinue | 
-                            Sort-Object -Unique | 
+    $debloatConfigContent = Get-Content -Path $DebloatConfig -ErrorAction SilentlyContinue |
+                            Sort-Object -Unique |
                             ForEach-Object {$_.Trim(" *")} |
                             Where-Object {![string]::IsNullOrEmpty($_)}
 
@@ -846,7 +846,7 @@ function Remove-OneDrive {
 
                             $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
                             $otherUserProfiles = $profileList | Where-Object {$_.SID -ne $currentSid}
-    
+
                             foreach ($profile in $otherUserProfiles) {
 
                                 $sid = $profile.SID
@@ -856,13 +856,13 @@ function Remove-OneDrive {
                                 try {
                                     # Mount the registry hive if the user is not logged in
                                     if (!(Test-Path -Path "Registry::HKU\$sid")) {
-                
+
                                         $userRegHivePath = Join-Path $profilePath "NTUSER.dat"
-                
+
                                         if (!(Test-Path -Path $userRegHivePath -PathType Leaf)) {
                                             throw "Path not found: $userRegHivePath"
                                         }
-                
+
                                         if (Get-UserRegistryHive -Load -HiveName HKU\$sid -HivePath $userRegHivePath) {
                                             $userHiveLoaded = $true
                                         } else {
@@ -1197,24 +1197,34 @@ function Get-AllUserProfilePaths {
 }
 
 function Get-ActiveUserSessionCount {
-  
-    # Sanity check to ignore calls if not using the correct switch.
+
+    #Sanity check to ignore calls if not using the correct switch.
     if (!$global:g_AllUsers) {
         return 0
     }
 
     try {
-        $quserOutputLines = quser /server:$env:COMPUTERNAME 2>&1
-        if (!$?) {
-            throw "Query User command failed. Unable to determine number of logged on users."
-        }
+        Write-Status -Status ACTION -Message "Checking for active user sessions..."
+        # Get logged-in user sessions via Win32_LogonSession and Win32_LoggedOnUser
+        # Interactive (2) and RemoteInteractive (10) sessions
+        $loggedOnUsers = Get-CimInstance -ClassName Win32_LogonSession -Filter "LogonType = 2 OR LogonType = 10" |
+            ForEach-Object {
+                Get-CimAssociatedInstance -InputObject $_ -Association Win32_LoggedOnUser
+            } | Select-Object -ExpandProperty Name -Unique
+
+        return @($loggedOnUsers).Count
     }
     catch {
-        throw $_.Exception.Message
+        Write-Status -Status FAIL "It was not possible to determine the number of logged on users." -Indent 1
+        while ($true) {
+            $result = Read-Host "[>>] Please confirm that you are the only logged on user (Y/N)"
+            switch ($result) {
+                {$_ -match "Y(es)?"} {return 1 }
+                {$_ -match "N(o)?"} {return 100}
+                Default {continue}
+            }
+        }
     }
-
-    # Skip the header row and return count of active sessions.
-    return @($quserOutputLines | Select-Object -Skip 1).Count
 }
 
 function Remove-PublicDesktopShortcuts {

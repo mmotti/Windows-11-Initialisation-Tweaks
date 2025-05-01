@@ -148,7 +148,7 @@ try {
 
     if ($global:g_AllUsers) {
         if ((Get-ActiveUserSessionCount) -gt 1) {
-            throw "Please ensure you are the only logged on user when making use of the -AllUsers switch."
+            throw "There is more than one active user session. "
         }
     }
 

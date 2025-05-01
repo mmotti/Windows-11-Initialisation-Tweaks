@@ -70,6 +70,14 @@ param(
 
 Clear-Host
 
+# ==================== CHECK CONSOLE PROCESS ====================
+
+if (([Environment]::Is64BitOperatingSystem) -and -not ([Environment]::Is64BitProcess)) {
+    throw "Please use the standard PowerShell or Terminal application (not the x86 version)."
+}
+
+# ==================== ASSETS CHECK ====================
+
 $scriptPath = $MyInvocation.MyCommand.Path
 $scriptParentDir = Split-Path $scriptPath -Parent
 

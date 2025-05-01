@@ -561,7 +561,7 @@ function Set-PowerPlan {
             throw "Unable to query available power schemes."
         }
 
-        if ($null -eq $powerSchemes) {
+        if ([string]::IsNullOrWhiteSpace($powerSchemes)) {
             throw "No power schemes were returned by the query."
         }
 

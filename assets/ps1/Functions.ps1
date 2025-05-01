@@ -558,84 +558,75 @@ function Set-PowerPlan {
         $powerSchemes = powercfg /list
 
         if ($LASTEXITCODE -ne 0) {
+            throw "Unable to query available power schemes."
+        }
+
+        if ($null -eq $powerSchemes) {
+            throw "No power schemes were returned by the query."
+        }
+
+        $processorString = $null
+        $hasBattery = $false
+        $isX3D = $false
+
+        try {
+            $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
+        }
+        catch {
+            Write-Status -Status WARN -Message "It was not possible to obtain the processor string." -Indent 1
+        }
+
+        try {
+            if (Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop) {
+                $hasBattery = $true
+            }
+        }
+        catch {
+            Write-Status -Status WARN -Message "It was not possible to determine whether a battery is present." -Indent 1
+        }
+
+        $isX3D = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
+        $targetPlan = if ($isX3D -or $hasBattery) { "Balanced" } else { "High performance" }
+
+        # Use regex matching against the power plan list in case M$ ever decides to change them.
+        $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
+        $desiredSchemeGUID = [regex]::Match($powerSchemes, "Power Scheme GUID: ([a-f0-9-]+)\s+\($targetPlan\)").Groups[1].Value
+
+        # The target plan for whatever reason is not available on this system.
+        if (!$desiredSchemeGUID) {
+            Write-Status -Status WARN -Message "The desired power plan ($targetPlan) was not found on this system." -Indent 1
             return $false
         }
 
-        if ($null -ne $powerSchemes) {
-
-            $targetPlanActive = $false
-            $processorString = $null
-            $isX3D = $false
-
-            try {
-                $processorString = (Get-ItemProperty -Path "HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0" -Name "ProcessorNameString").ProcessorNameString
-            }
-            catch {
-                Write-Status -Status WARN -Message "It was not possible to obtain the processor string." -Indent 1
-            }
-
-            $isX3D = if ($processorString -and $processorString -match "^AMD.*X3D") { $true } else { $false }
-            $targetPlan = if ($isX3D) { "Balanced" } else { "High performance" }
-
-            # Use regex matching against the power plan list in case M$ ever decides to change them.
-
-            $activeSchemeGUID = [regex]::Match($powerSchemes, 'Power Scheme GUID: ([a-f0-9-]+)\s+\([^\)]+\)\s*\*').Groups[1].Value
-            $desiredSchemeGUID = [regex]::Match($powerSchemes, "Power Scheme GUID: ([a-f0-9-]+)\s+\($targetPlan\)").Groups[1].Value
-
-            # If the desired GUID was matched in the powercfg output.
-            if ($desiredSchemeGUID) {
-                # The current scheme is the desired scheme.
-                if ($activeSchemeGUID -eq $desiredSchemeGUID) {
-                    $targetPlanActive = $true
-                    Write-Status -Status OK -Message "`"$targetPlan`" already active." -Indent 1
-                # The current scheme is not the desired scheme.
-                } else {
-                    Write-Status -Status ACTION -Message "Setting active power plan to: $targetPlan" -Indent 1
-                    powercfg /setactive $desiredSchemeGUID
-
-                    if ($LASTEXITCODE -ne 0) {
-                        Write-Status -Status FAIL -Message "An error occurred: $($_.Exception.Message)" -Indent 1
-                        return $false
-                    } else {
-                        $targetPlanActive = $true
-                        Write-Status -Status OK -Message "Successfully applied `"$targetPlan`" power plan." -Indent 1
-                    }
-                }
-
-                if ($targetPlanActive) {
-
-                    # Disable sleep if the system does not have a battery (hopefully only targeting desktops).
-                    try {
-
-                        $hasBattery = Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop
-
-                        if ($null -eq $hasBattery) {
-
-                            powercfg /change standby-timeout-ac 0
-
-                            if ($LASTEXITCODE -eq 0) {
-                                Write-Status -Status OK -Message "Sleep mode disabled." -Indent 1
-                            } else {
-                                Write-Status -Status FAIL -Message "Unable to disable sleep mode." -Indent 1
-                            }
-                        }
-                    }
-                    catch {
-                        Write-Status -Status FAIL -Message "CimInstance query for battery detection failed." -Indent 1
-                        return $false
-                    }
-                }
+        # The current scheme is the desired scheme.
+        if ($activeSchemeGUID -eq $desiredSchemeGUID) {
+            Write-Status -Status OK -Message "`"$targetPlan`" already active." -Indent 1
+        # The current scheme is not the desired scheme.
+        } else {
+            Write-Status -Status ACTION -Message "Setting active power plan to: $targetPlan" -Indent 1
+            powercfg /setactive $desiredSchemeGUID
+            if ($LASTEXITCODE -ne 0) {
+                throw "An error occurred: $($_.Exception.Message)"
             } else {
-                $targetPlanActive = $false
-                Write-Status -Status WARN -Message "The desired power plan ($targetPlan) was not found on this system." -Indent 1
-                return $false
+                Write-Status -Status OK -Message "Successfully applied `"$targetPlan`" power plan." -Indent 1
             }
-
-            return $true
         }
+
+        # Disable sleep mode for machines that don't have a battery installed.
+        if ($hasBattery -eq $false) {
+            powercfg /change standby-timeout-ac 0
+            if ($LASTEXITCODE -eq 0) {
+                Write-Status -Status OK -Message "Sleep mode disabled." -Indent 1
+            } else {
+                throw "Unable to disable sleep mode."
+            }
+        }
+
+        return $true
     }
     catch {
         Write-Status -Status FAIL -Message $_.Exception.Message -Indent 1
+        return $false
     }
 }
 

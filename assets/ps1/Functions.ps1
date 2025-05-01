@@ -592,20 +592,16 @@ function Set-PowerPlan {
         }
 
         $hasBattery = $false
-        $batteryCheckSucceeded = $false
 
         try {
             $hasBattery = [bool](Get-CimInstance -ClassName Win32_Battery -ErrorAction Stop)
-            $batteryCheckSucceeded = $true
         } catch {
             Write-Status -Status WARN -Message "It was not possible to determine whether a battery is present." -Indent 1
-        }
-
-        if (!$batteryCheckSucceeded) {
             Write-Status -Status WARN -Message "Skipping sleep mode modification (battery check failed)." -Indent 1
-            return
+            # Return true as this is a mission critical issue.
+            return $true
         }
-
+        
         # Disable sleep mode for machines that don't have a battery installed.
         if (!$hasBattery) {
             powercfg /change standby-timeout-ac 0

@@ -147,14 +147,8 @@ try {
     # Check for >1 user logged in when -AllUsers is used.
 
     if ($global:g_AllUsers) {
-        try {
-            if ((Get-ActiveUserSessionCount) -gt 1) {
-                throw "Please ensure you are the only logged on user when making use of the -AllUsers switch."
-            }
-        }
-        # In the event that the CimInstance query failed.
-        catch {
-            throw $_.Exception.Message
+        if ((Get-ActiveUserSessionCount) -gt 1) {
+            throw "Please ensure you are the only logged on user when making use of the -AllUsers switch."
         }
     }
 

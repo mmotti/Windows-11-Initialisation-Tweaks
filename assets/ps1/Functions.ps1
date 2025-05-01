@@ -1198,24 +1198,21 @@ function Get-AllUserProfilePaths {
 
 function Get-ActiveUserSessionCount {
 
-    #Sanity check to ignore calls if not using the correct switch.
+    # Sanity check to ignore calls if not using the correct switch.
     if (!$global:g_AllUsers) {
         return 0
     }
 
     try {
-        Write-Status -Status ACTION -Message "Checking for active user sessions..."
-        # Get logged-in user sessions via Win32_LogonSession and Win32_LoggedOnUser
-        # Interactive (2) and RemoteInteractive (10) sessions
-        $loggedOnUsers = Get-CimInstance -ClassName Win32_LogonSession -Filter "LogonType = 2 OR LogonType = 10" |
-            ForEach-Object {
-                Get-CimAssociatedInstance -InputObject $_ -Association Win32_LoggedOnUser
-            } | Select-Object -ExpandProperty Name -Unique
-
-        return @($loggedOnUsers).Count
+        $null = Get-Command -Name quser -ErrorAction Stop
+        $quserOutputLines = quser /server:$env:COMPUTERNAME 2>&1
+        if (!$?) { throw }
+        # Skip the header row and return count of active sessions.
+        return @($quserOutputLines | Select-Object -Skip 1).Count
     }
     catch {
-        Write-Status -Status FAIL "It was not possible to determine the number of logged on users." -Indent 1
+        Write-Status -Status FAIL -Message "It was not possible to determine the number of logged on users." -Indent 1
+        Write-Status -Status WARN -Message "When the -AllUsers parameter is in use, there must not be any other logged on users." -Indent 1
         while ($true) {
             $result = Read-Host "[>>] Please confirm that you are the only logged on user (Y/N)"
             switch ($result) {

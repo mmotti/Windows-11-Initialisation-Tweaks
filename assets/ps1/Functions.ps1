@@ -1211,10 +1211,10 @@ function Get-ActiveUserSessionCount {
         return @($quserOutputLines | Select-Object -Skip 1).Count
     }
     catch {
-        Write-Status -Status FAIL -Message "It was not possible to determine the number of logged on users." -Indent 1
-        Write-Status -Status WARN -Message "When the -AllUsers parameter is in use, there must not be any other logged in users." -Indent 1
+        Write-Status -Status FAIL -Message "Unable to determine the number of active user sessions." -Indent 1
+        Write-Status -Status WARN -Message "The -AllUsers parameter requires that you be the sole logged-in user." -Indent 1
         while ($true) {
-            $result = Read-Host "[>>] Please confirm that you are the only logged on user (Y/N)"
+            $result = Read-Host "[>>] Confirm that you are the only logged-in user (Y/N)"
             switch ($result) {
                 {$_ -match "Y(es)?"} {return 1 }
                 {$_ -match "N(o)?"} {return 100}

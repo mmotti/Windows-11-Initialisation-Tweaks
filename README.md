@@ -23,11 +23,18 @@ This script performs a range of actions, including:
     *   Configures File Explorer (show hidden files/extensions, hide recent/frequent items, open to This PC).
     *   Sets Windows Terminal as the default console.
 *   **Privacy & Annoyances:**
+    *   Disables automatic installation of recommended Windows Store apps.
     *   Disables various tracking and advertising features (activity history, advertising ID, tailored experiences, diagnostic data, etc.).
+    *   Disables transmission of typing data.
     *   Disables tips, suggestions, welcome experience, and Start Menu recommendations.
+    *   Disables suggestions in "timeline".
     *   Disables Windows Spotlight and "fun facts" on the lock screen.
     *   Disables Widgets.
+    *   Disables Windows Copilot.
     *   Disables Copilot+ Recall feature (registry key).
+    *   Disables "Search with AI" in the task bar search box.
+    *   Disables Start Menu suggestions from Windows Store (for apps not currently installed).
+    *   Disables clipboard history.
 *   **System Configuration:**
     *   Set Balanced as the active power plan.
     *   Disables sleep mode on AC power if no battery is detected.

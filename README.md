@@ -30,8 +30,10 @@ This script performs a range of actions, including:
     *   Disables suggestions in "timeline".
     *   Disables Windows Spotlight and "fun facts" on the lock screen.
     *   Disables Widgets.
-    *   Disables Windows Copilot.
-    *   Disables Copilot+ Recall feature (registry key).
+    *   Disables Windows Copilot features (exposed to Group Policy):
+        - Paint: Co-Creator, Generative Fill, Image Creator.
+    *   Disables Copilot+ Recall (and other "WindowsAI" features exposed to Group Policy):
+        - Recall Enablement, Recall Export, AI Data Analysis, ClickToDo, SettingsAgent.
     *   Disables "Search with AI" in the task bar search box.
     *   Disables Start Menu suggestions from Windows Store (for apps not currently installed).
     *   Disables clipboard history.

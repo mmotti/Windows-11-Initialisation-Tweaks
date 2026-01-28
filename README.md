@@ -49,7 +49,10 @@ This script performs a range of actions, including:
     *   Removes the Microsoft Edge shortcut from the Public Desktop.
     *   Uninstalls OneDrive (scope depends on execution mode).
 *   **Application Settings:**
-    *   Applies custom settings for Notepad (WordWrap, new window default, etc.).
+    *   Applies custom settings for Notepad:
+        - Misc: Open files in a new window.
+        - Enable: Word wrap, Formatting, Recent Files, Spell Check, Autocorrect.
+        - Disable: Copilot.
     *   Copies a clean Start Menu layout for new users (when using [`-DefaultUser`](#script-modes) mode).
 
 ## Prerequisites

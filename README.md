@@ -16,12 +16,12 @@ This script performs a range of actions, including:
 
 *   **UI Customization:**
     *   Applies the Windows dark theme.
-    *   Aligns taskbar icons to the left.
+    *   Align taskbar: left.
     *   Hides Taskbar Search and Copilot buttons.
     *   Enables "Show Desktop" on the far right corner of the taskbar.
+    *   Enables "Show Clock in Notification Centre".
     *   Adds "This PC" icon to the desktop and sets icons to small.
     *   Configures File Explorer (show hidden files/extensions, hide recent/frequent items, open to This PC).
-    *   Sets Windows Terminal as the default console.
 *   **Privacy & Annoyances:**
     *   Disables automatic installation of recommended Windows Store apps.
     *   Disables various tracking and advertising features (activity history, advertising ID, tailored experiences, diagnostic data, etc.).
@@ -38,6 +38,7 @@ This script performs a range of actions, including:
     *   Disables Start Menu suggestions from Windows Store (for apps not currently installed).
     *   Disables clipboard history.
 *   **System Configuration:**
+    *   Sets Windows Terminal as the default console.
     *   Set Balanced as the active power plan.
     *   Disables sleep mode on AC power if no battery is detected.
     *   Disables Fast Startup.
